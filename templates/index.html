@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <form class="customer-form">
+        <div class="form-group">
+            <div class="input-with-voice">
+                <input type="text" id="customerName" class="form-control" placeholder="Customer Name *">
+                <button type="button" class="voice-btn" data-field="customerName">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Add other form fields similarly -->
+    </form>
+</div>
+{% endblock %} 

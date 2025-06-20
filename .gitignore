@@ -1,0 +1,105 @@
+# Environment and configuration files
+settings.json
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+temp/
+temp_uploads/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+
+# Vector stores
+vectorstores/
+faiss_index/
+chroma_db/
+
+# Environment variables and secrets
+.env.*
+!.env.example
+
+# Node
+.DS_Store
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+
+# Production
+/build
+
+# Miscellaneous
+*.swp
+*.swo
+~$*
+
+# Data, vector stores, and outputs
+generated_questions.json
+*.pdf
+temp/
+blob
+recording.wav
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Office temp files
+~$*
+
+# Docker artifacts
+*.pid
+
+# PowerPoint/Word/Excel temp files
+~$*
+
+# Remove lock files if you don't want to track them
+# package-lock.json
+# yarn.lock
+
+1.2.3                   __pycache__            logging            src
+App_updates             app.py                 mylang4.py         static
+CreatePDF.py            build.sh               package-lock.json  templates
+README.md               check_requirements.py  package.json       tsconfig.json
+Samples                 dist                   processing         tsconfig.node.json
+Testing_langchian_part  generate_cert.py       public             venv
+Utility                 index.html             requirements.txt   vite.config.ts

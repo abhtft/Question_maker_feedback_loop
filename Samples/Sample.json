@@ -1,0 +1,19 @@
+{
+    "subjectName": "Mathematics",
+    "classGrade": "10",
+    "language": "English",
+    "topics": [
+      {
+        "sectionName": "Algebra",
+        "topicNotes": "Basic equations",
+        "questionType": "MCQ",
+        "difficulty": "Medium",
+        "bloomLevel": "Understand",
+        "intelligenceType": "Logical-Mathematical",
+        "numQuestions": "2",
+        "additionalInstructions": "Focus on real-life examples"
+      }
+    ]
+  }
+  --------------------------
+  

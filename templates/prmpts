@@ -1,0 +1,147 @@
+def generate_question_prompt(topic_data, paper_id=None):
+    feedback_context = get_feedback_context(paper_id) if paper_id else ""
+    
+    return f"""You are an expert educator tasked to create questions.
+
+Generate {topic_data['numQuestions']} {topic_data['questionType']} questions for:
+
+- Subject: {topic_data['subjectName']}
+- Class/Grade: {topic_data['classGrade']}
+- Topic: {topic_data['sectionName']}
+- Difficulty Level: {topic_data['difficulty']}
+- Bloom's Taxonomy Level: {topic_data['bloomLevel']}
+- Intelligence Type: {topic_data['intelligenceType']}
+
+Additional Instructions: {topic_data['additionalInstructions']}
+
+{feedback_context}
+
+🔵 Strict Requirements:
+1. Match exactly the specified difficulty and Bloom's level.
+2. Test deep conceptual understanding, not rote memorization (unless instructed).
+3. Use technical language appropriate for Class {topic_data['classGrade']} level.
+4. Follow the {topic_data['questionType']} format precisely.
+5. If MCQ:
+    - Provide exactly 4 options.
+    - Ensure all options are realistic, meaningful, and non-trivial (no obviously wrong answers).
+6. For each question, provide:
+    - Clear and concise question text
+    - Correct answer
+    - Step-by-step detailed explanation (why the correct answer is correct and why others are wrong, if relevant)
+7. Avoid ambiguity or overlaps in options or question phrasing.
+8. Do not repeat or slightly vary questions.
+9. Incorporate feedback (if provided).
+
+🟢 Output Format (strictly JSON):
+
+{{
+  "questions": [
+    {{
+      "question": "Question text here",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],  // Required for MCQ
+      "answer": "Correct answer text",
+      "explanation": "Detailed explanation"
+    }}
+  ]
+}}
+"""
+-----------------------------
+
+def generate_question_prompt(topic_data, paper_id=None):
+    feedback_context = get_feedback_context(paper_id) if paper_id else ""
+    
+    return f"""Generate {topic_data['numQuestions']} {topic_data['questionType']} questions for the following topic:
+
+Subject: {topic_data['subjectName']}
+Class: {topic_data['classGrade']}
+Topic: {topic_data['sectionName']}
+Difficulty: {topic_data['difficulty']}
+Bloom's Level: {topic_data['bloomLevel']}
+Intelligence Type: {topic_data['intelligenceType']}
+
+Additional Instructions: {topic_data['additionalInstructions']}
+
+{feedback_context}
+Requirements:
+1. Each question must exactly match the difficulty and Bloom's level.
+2. Questions should test deep understanding — not superficial memory recall (unless explicitly asked).
+3. Use technical language appropriate for {topic_data['classGrade']} level.
+4. Follow {topic_data['questionType']} format strictly (e.g., if MCQ, exactly 4 meaningful, non-trivial options).
+5. For MCQs: Ensure wrong options (distractors) are realistic and challenging.
+6. For each question, provide:
+    - Clear question text
+    - Answer (the correct one)
+    - Detailed explanation (step-by-step reasoning or key points)
+7. Questions should avoid ambiguity and must be clear and precise.
+8. Do not repeat questions or make minor variations.
+9. Match the specified difficulty level
+10. Target the specified Bloom's level
+11. Cater to the specified intelligence type
+12. Follow the question type format
+13. Include answers where appropriate
+14. Consider any previous feedback provided
+
+Format the response as a JSON object with the following structure:
+{{
+    "questions": [
+        {{
+            "question": "question text",
+            "options": ["option1", "option2", "option3", "option4"],  // for MCQ
+            "answer": "correct answer",
+            "explanation": "explanation of the answer"
+        }}
+    ]
+}}
+"""
+------------------------------
+
+def generate_question_prompt(topic_data, paper_id=None):
+    feedback_context = get_feedback_context(paper_id) if paper_id else ""
+
+    return f"""Generate {topic_data['numQuestions']} {topic_data['questionType']} questions for the following topic:
+
+Subject: {topic_data['subjectName']}
+Class: {topic_data['classGrade']}
+Topic: {topic_data['sectionName']}
+Difficulty: {topic_data['difficulty']}
+Bloom's Level: {topic_data['bloomLevel']}
+Intelligence Type: {topic_data['intelligenceType']}
+Intelligence SubType: {topic_data.get('intelligenceSubType', 'General')}  # <--- Added line
+
+Additional Instructions: {topic_data['additionalInstructions']}
+
+{feedback_context}
+Requirements:
+1. Each question must exactly match the difficulty and Bloom's level.
+2. Questions should test deep understanding — not superficial memory recall (unless explicitly asked).
+3. Use technical language appropriate for {topic_data['classGrade']} level.
+4. Follow {topic_data['questionType']} format strictly (e.g., if MCQ, exactly 4 meaningful, non-trivial options).
+5. For MCQs: Ensure wrong options (distractors) are realistic and challenging.
+6. For each question, provide:
+    - Clear question text
+    - Answer (the correct one)
+    - Detailed explanation (step-by-step reasoning or key points)
+7. Questions should avoid ambiguity and must be clear and precise.
+8. Do not repeat questions or make minor variations.
+9. Match the specified difficulty level
+10. Target the specified Bloom's level
+11. Cater to the specified intelligence type and sub-type
+12. Follow the question type format
+13. Include answers where appropriate
+14. Consider any previous feedback provided
+
+Format the response as a JSON object with the following structure:
+{{
+    "questions": [
+        {{
+            "question": "question text",
+            "options": ["option1", "option2", "option3", "option4"],  // for MCQ
+            "answer": "correct answer",
+            "explanation": "explanation of the answer"
+        }}
+    ]
+}}
+"""
+------------------------------
+
+

@@ -1,0 +1,105 @@
+.question-maker-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .basic-info-section,
+  .topics-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .topic-block {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+  
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  
+  .submit-section {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .submit-section button {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+
+  .file-upload-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .file-upload-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .file-upload-button:hover {
+    background-color: #45a049;
+  }
+
+  .file-upload-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  .file-upload-success {
+    color: #4CAF50;
+    font-weight: bold;
+  }
+
+  .input-note {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 4px;
+    font-style: italic;
+  }

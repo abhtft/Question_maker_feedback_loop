@@ -1,0 +1,80 @@
+.voice-input-container {
+  display: none !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #4a4af4;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.voice-button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.voice-button:active {
+  transform: scale(0.95);
+}
+
+.voice-button.recording {
+  background-color: #ff4444;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.transcript-container {
+  flex: 1;
+  padding: 10px;
+  border-radius: 5px;
+  background: #f5f5f5;
+}
+
+.transcript {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.word-with-suggestion {
+  display: inline-flex;
+  gap: 5px;
+  margin: 0 5px;
+}
+
+.original-word {
+  color: #ff4444;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.suggested-word {
+  color: #4CAF50;
+  cursor: pointer;
+  font-style: italic;
+} 

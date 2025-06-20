@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-05-29T12:30:00Z",
+  "user": "abhishek",
+  "deployment": "gpt-35-turbo",
+  "prompt": "Explain Newton's second law",
+  "completion": "Newton’s second law states that..."
+}----------
+
+💡 Recommendation
+If you want a UI like OpenAI's Playground with prompt/response history:
+
+Build a simple logging layer in your app.
+
+Optionally create a small dashboard (e.g., using Streamlit or Flask) to view your interaction history.
+
+Let me know if you'd like a template Python logger + viewer to get started!
