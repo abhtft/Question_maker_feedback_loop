@@ -24,10 +24,16 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
+      - name: Install system dependencies for pycairo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev pkg-config python3-dev
+
+      - name: Create and activate virtual environment, then install Python dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Upload artifact for deployment
