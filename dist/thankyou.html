@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thank You</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 100px; }
+    a { font-size: 1.2em; color: #007bff; }
+  </style>
+</head>
+<body>
+  <h2>Thank you! Your paper has been generated.</h2>
+  <div id="pdf-link"></div>
+  <script>
+    // Get the PDF URL from the query string
+    const params = new URLSearchParams(window.location.search);
+    const pdfUrl = params.get('pdf');
+    if (pdfUrl) {
+      document.getElementById('pdf-link').innerHTML =
+        `<a href="${pdfUrl}" target="_blank" rel="noopener noreferrer">Download PDF</a>`;
+    }
+  </script>
+</body>
+</html>
