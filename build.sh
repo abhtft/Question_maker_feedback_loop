@@ -7,7 +7,7 @@ echo "Starting build process..."
 
 python -m venv venv
 
-source venv/bin/activate
+source venv310/bin/activate
 #for windows
 venv\Scripts\activate
 

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build: .
-    image: paper_generator:latest
+    image: abhishek838/paper_generator:latest
     container_name: paper_generator_web
     ports:
       - "5000:5000"

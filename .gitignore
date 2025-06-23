@@ -100,6 +100,6 @@ recording.wav
 App_updates             app.py                 mylang4.py         static
 CreatePDF.py            build.sh               package-lock.json  templates
 README.md               check_requirements.py  package.json       tsconfig.json
-Samples                 dist                   processing         tsconfig.node.json
+Samples                                    processing         tsconfig.node.json
 Testing_langchian_part  generate_cert.py       public             venv
 Utility                 index.html             requirements.txt   vite.config.ts
