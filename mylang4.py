@@ -119,6 +119,20 @@ You will receive:
 - The intended subject, grade level, topic, difficulty, and Bloom's taxonomy level  
 - The original context (learning material)  
   
+**Question Details:**
+Subject: {subject}
+Grade: {class_grade}
+Topic: {topic}
+Difficulty: {difficulty}
+Bloom's Level: {bloom_level}
+Question Type: {question_type}
+
+**Context:**
+{context}
+
+**Questions to Evaluate:**
+{questions}
+
 Your task:  
 1. Evaluate the questions for:  
    - **Relevance**: Do they match the provided context and topic?  
@@ -413,13 +427,13 @@ correct json format is given above.
   
         raise Exception("Failed to generate questions after maximum attempts")  
   
-    def _get_context(self, topic_data: Dict[str, Any], vectorstore: Any) -> str:  
-        def truncate_to_tokens(text: str, max_tokens: int = 1000, model: str = "gpt-4") -> str:  
+    def _get_context( self, topic_data: Dict[str, Any], vectorstore: Any) -> str:  
+        def truncate_to_tokens(text: str, max_tokens: int = 4000, model: str = "gpt-4") -> str:  
             enc = tiktoken.encoding_for_model(model)  
             tokens = enc.encode(text)  
             truncated_tokens = tokens[:max_tokens]  
             return enc.decode(truncated_tokens)  
-  
+
         context = ""  
         if vectorstore:  
             try:  
