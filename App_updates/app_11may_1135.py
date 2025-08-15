@@ -15,7 +15,7 @@ import io
 import asyncio
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-import mylang4  # Import the LangChain module
+import mylang4_openai  # Import the LangChain module
 from langchain.vectorstores import Chroma
 from langchain.embeddings import OpenAIEmbeddings
 #from question_prompt import QuestionPromptGenerator
@@ -164,7 +164,7 @@ async def generate_questions():
                     topic_data['numQuestions'] = 1
 
             # Use vectorstore if available, else fallback to general
-            questions = mylang4.question_generator.generate_questions(topic_data, vectorstore)
+            questions = mylang4_openai.question_generator.generate_questions(topic_data, vectorstore)
             all_questions.append({
                 'topic': topic_data.get('sectionName', ''),
                 'questions': questions['questions'],
@@ -322,7 +322,7 @@ def analyse_note():
 
         vectorstore_path = f'vectorstores/latest'
         os.makedirs(vectorstore_path, exist_ok=True)
-        vectorstore, chunks = mylang4.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
+        vectorstore, chunks = mylang4_openai.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
 
         
 

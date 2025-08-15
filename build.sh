@@ -7,8 +7,10 @@ echo "Starting build process..."
 
 python -m venv venv
 
+#for linux
 source venv310/bin/activate
-#for windows
+
+#2. for windows
 venv\Scripts\activate
 
 python emailmessage.py
@@ -67,6 +69,7 @@ pm2 start app.py --name "prashnotri" --interpreter python3
 
 cd /home/ubuntu/Question_maker
 source venv/bin/activate
+
 pip install -r requirements.txt
 
  Frontend Build(local)
@@ -267,3 +270,12 @@ python code_sample.py
 
 
 docker-compose up --build
+
+echo "# Question_maker_feedback_loop" >> README.md
+git init
+#git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote -v
+git remote add origin https://github.com/abhtft/Question_maker_feedback_loop.git
+git push -u origin main

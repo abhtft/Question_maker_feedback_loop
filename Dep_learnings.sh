@@ -4,38 +4,24 @@
 
 #free tier east us is best
 
-image.png
-
-#copy pasting is working for n8n json
-
-#agent: it means actign autonomously and deciding which tool to use
-
-#n8n need to be learn  like (agentic ai,merge,etc) to fully utilise learning it.
-
-#what things am i deploying
-
-#what changes am i doing to deployment
-
-#what erroes i am getting in deployment.
-
-#habit of putting updated things everywhere
-
-#step1:SSH into system
-
-#step2:update and upgrade system
-
-#via general pm2 way
 
 sudo apt update && sudo apt upgrade -y
+
+#step1:install dependencies
 sudo apt install pkg-config libcairo2-dev libgirepository1.0-dev -y
 
-#step2.1:install python3.10
+#step2:install python3.10
 sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update
 sudo apt install python3.10 python3.10-venv python3.10-dev -y
 
 
 
+#creating environment files
+create .env file
+nano .env
+
+ctrl+x to save and exit
 
 #step3:install git
 
@@ -43,19 +29,35 @@ sudo apt install git -y
 
 #always same python version
 
+#docker install
+
+#removing file in ubuntu
+rm -rf Question_Maker_V4
 
 #step4:clone the repository
+#should only be in main not in cd one
 git clone https://github.com/abhtft/Question_Maker_V4.git
 cd Question_Maker_V4
 (betterway as very quick way and only once need install)
+
+#to call just changed this file
+cd ~/Question_Maker_V4
+git pull origin main
+
+#venv is good way to install dependencies
+python3.10 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+deactivate
+
+
 
 
 #step6:install dependencies
 pip install -r requirements.txt
 
 #step7:run the application
-python app.py
-
+python3.10 app.py
 
 #step5:install pm2
 sudo apt install npm -y
@@ -63,7 +65,7 @@ sudo npm install -g pm2
 
 #step6:run the application completely wrong setup you gave
 #pm2 start gunicorn --name question-maker --interpreter python3.10 -- \-w 4 -b 0.0.0.0:5000 app:app
-#pm2 start app.py --name question-maker --interpreter python3.10
+pm2 start app.py --name question-maker --interpreter python3.10
 #pm2 was not proeprly deployed so gave error
 
 
@@ -71,7 +73,7 @@ pm2 status:  checking the status of the application
 pm2 logs question-maker:  checking the logs of the application
 pm2 stop question-maker:  stopping the application
 pm2 delete question-maker:  deleting the application
-pm2 restart question-maker:  restarting the application
+pm2 restart question-maker
 pm2 save:  saving the application
 pm2 unstartup:  unstartup the application
 
@@ -83,6 +85,8 @@ pm2 status
 # Run the container
 curl http://127.0.0.1:5000
 
+#local and public ipv4 verification done.
+
 #after app running local then only nginx make sense
 
 #nginx is a web server that can be used to serve the application
@@ -93,18 +97,15 @@ curl http://127.0.0.1:5000
 
 
 
-
-
-
-
-
-
 #---------------------------------------------------
 
 #installing via docker
 
-#step1:install docker
+#step1:install nginx (connecting local ipv4 with custom domain)but in http not https
 
+sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+sudo nano /etc/nginx/sites-available/prashnotri
 
 
 server {
@@ -120,20 +121,32 @@ server {
     }
 }
 
+sudo apt update
+sudo apt install nginx -y
+
+
+
+After installation, verify it's running:
+sudo systemctl status nginx
+If it's not running, start it:
+sudo systemctl start nginx
+
+sudo systemctl restart nginx
+
+#what are its uses?
+#it is used to get a free ssl certificate
+#it is used to secure the connection between the user and the server
+#it is used to encrypt the data between the user and the server
+#it is used to secure the connection between the user and the server
+
+
 #after nginx we need lets encrpt
 
 sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx
 
-#both method failed due to nginx imporper issue
-#pm2 is always risky
-or some issue in main
+#check the final website
 
-#pm2 code was not given proper by chatgpt
+#now we need to deploy the application on azure web app
 
-pm2 start app.py --name question-maker --interpreter python3.10
-
-
-
-
-
+cd #.. towards back

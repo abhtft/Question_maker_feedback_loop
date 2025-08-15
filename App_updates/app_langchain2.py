@@ -18,7 +18,7 @@ import io
 import asyncio
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-import mylang4  # Import the LangChain module
+import mylang4_openai  # Import the LangChain module
 from langchain.vectorstores import Chroma
 from langchain.embeddings import OpenAIEmbeddings
 import tempfile

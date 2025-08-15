@@ -1,6 +1,6 @@
 import os
 import json
-from mylang4 import DocumentProcessor, QuestionGenerator, QuestionEvaluator
+from mylang4_openai import DocumentProcessor, QuestionGenerator, QuestionEvaluator
 from dotenv import load_dotenv
 import re
 

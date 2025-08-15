@@ -15,9 +15,6 @@ logging.info("Test log entry: Logging is working.")
 print("Logging to:", os.path.abspath(log_filename))  # Add this for debugging
 
 
-
-
-
 from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -36,10 +33,9 @@ import hashlib
 #from concurrent.futures import ThreadPoolExecutor
 import mylang4  # Import the LangChain module
 #from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 #from question_prompt import QuestionPromptGenerator
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from Utility.pdfmaker import CreatePDF
 import requests 
 
@@ -70,7 +66,6 @@ def generate_email(data):
     """
 
 
-
 # Configure CORS
 CORS(app, resources={
     r"/*": {
@@ -92,9 +87,9 @@ try:
     db = client[DB_NAME]
     requests_collection = db[REQUEST_COLLECTION]
     papers_collection = db[PAPER_COLLECTION]
-    logging.info("✅ MongoDB Connection Successful!")
+    logging.info("MongoDB Connection Successful!")
 except Exception as e:
-    logging.info(f"❌ MongoDB Connection Error: {e}")
+    logging.info(f"MongoDB Connection Error: {e}")
     db = None
 
 # Initialize OpenAI client
@@ -112,17 +107,15 @@ try:
         api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
         http_client=http_client
     )
-    logging.info("✅ Azure OpenAI client initialized successfully")
+    logging.info("Azure OpenAI client initialized successfully")
 except Exception as e:
-    logging.info(f"❌ Error initializing OpenAI client: {e}")
+    logging.info(f"Error initializing OpenAI client: {e}")
     raise
-
-
-
 
 
 # Export the client for use in other modules
 __all__ = ['openai_client']
+
 
 # Initialize AWS S3 client
 try:
@@ -134,9 +127,9 @@ try:
     )
     S3_BUCKET = os.getenv('S3_BUCKET_NAME')
     NOTES_BUCKET = os.getenv('NOTES_BUCKET_NAME')  # Separate bucket for notes
-    logging.info("✅ AWS S3 Connection Successful!")
+    logging.info("AWS S3 Connection Successful!")
 except Exception as e:
-    logging.info(f"❌ AWS S3 Connection Error: {e}")
+    logging.info(f"AWS S3 Connection Error: {e}")
     s3_client = None
 
 # Add memory monitoring function
@@ -223,8 +216,25 @@ def generate_questions():
                 current_batch = min(batch_size, num_qs - i)
                 batch_data = {**topic_data, 'numQuestions': current_batch}
 
-                questions = mylang4.question_generator.generate_questions(batch_data, vectorstore)
-                topic_questions.extend(questions['questions'])
+                questions = mylang4.question_generator.generate_questions(batch_data, vectorstore, mylang4.question_verifier)
+                # Handle the returned structure correctly
+                if isinstance(questions['questions'], dict) and 'questions' in questions['questions']:
+                    # If questions['questions'] is a dict with nested 'questions' key
+                    topic_questions.extend(questions['questions']['questions'])
+                elif isinstance(questions['questions'], list):
+                    # If questions['questions'] is directly a list
+                    topic_questions.extend(questions['questions'])
+                else:
+                    # Fallback - try to extract questions from the result
+                    logging.error(f"Unexpected questions structure: {type(questions['questions'])}")
+                    if isinstance(questions['questions'], dict):
+                        topic_questions.extend(questions['questions'].get('questions', []))
+                
+                # Log verification results
+                if 'verification_result' in questions:
+                    logging.info(f"Question verification for topic '{topic.get('sectionName', '')}': {questions['verification_result']['overall_verdict']} (Attempts: {questions.get('attempts_used', 1)})")
+                    if questions.get('warning'):
+                        logging.warning(f"Quality warning for topic '{topic.get('sectionName', '')}': {questions['warning']}")
 
                 # Free memory
                 gc.collect()
@@ -449,6 +459,8 @@ def upload_note():
         logging.info(f"Error uploading note: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+
 @app.route('/api/analyse-note', methods=['POST'])
 def analyse_note():
     try:
@@ -477,13 +489,30 @@ def server_error(e):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    logging.info(f"🚀 Server starting on http://localhost:{port}")
-    logging.info(f"📁 Serving static files from: {os.path.abspath(app.static_folder)}")
+    logging.info(f"Server starting on http://localhost:{port}")
+    logging.info(f"Serving static files from: {os.path.abspath(app.static_folder)}")
     app.run(
         host='0.0.0.0',
         port=port,
         debug=True
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 '''
@@ -494,3 +523,91 @@ taskl
 4.good text look of chatgpt see
 5.additional info in question paper optional also
 '''
+
+@app.route('/api/mylangtest', methods=['POST'])
+def mylang_test():
+    """
+    Test endpoint for mylang4 question generation functionality
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        
+        if not data:
+            # If no data provided, use test data
+            data = {
+                "numQuestions": 2,
+                "questionType": "MCQ",
+                "subjectName": "Mathematics",
+                "classGrade": "10th",
+                "sectionName": "Algebra",
+                "difficulty": "Medium",
+                "bloomLevel": "Understand",
+                "additionalInstructions": "Focus on quadratic equations"
+            }
+            logging.info("Using default test data for mylang4 testing")
+        
+        # Check if mylang4 components are available
+        if not hasattr(mylang4, 'question_generator'):
+            return jsonify({'success': False, 'error': 'question_generator not found in mylang4'}), 500
+            
+        if not hasattr(mylang4, 'question_verifier'):
+            return jsonify({'success': False, 'error': 'question_verifier not found in mylang4'}), 500
+        
+        # Set vectorstore to None for testing (no document context)
+        vectorstore = None
+        
+        logging.info(f"Starting question generation with data: {data}")
+        
+        # Generate questions using mylang4
+        out = mylang4.question_generator.generate_questions(data, vectorstore, mylang4.question_verifier)
+        
+        logging.info(f"Question generation completed successfully")
+        
+        return jsonify({'success': True, 'output': out})
+        
+    except Exception as e:
+        logging.error(f"Error in mylang_test endpoint: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mylangtest-get', methods=['GET'])
+def mylang_test_get():
+    """
+    GET endpoint for testing mylang4 with default data
+    """
+    try:
+        # Use default test data for GET requests
+        data = {
+            "numQuestions": 1,
+            "questionType": "MCQ",
+            "subjectName": "Mathematics",
+            "classGrade": "10th",
+            "sectionName": "Algebra",
+            "difficulty": "Medium",
+            "bloomLevel": "Understand",
+            "additionalInstructions": "Focus on quadratic equations"
+        }
+        
+        # Check if mylang4 components are available
+        if not hasattr(mylang4, 'question_generator'):
+            return jsonify({'success': False, 'error': 'question_generator not found in mylang4'}), 500
+            
+        if not hasattr(mylang4, 'question_verifier'):
+            return jsonify({'success': False, 'error': 'question_verifier not found in mylang4'}), 500
+        
+        # Set vectorstore to None for testing (no document context)
+        vectorstore = None
+        
+        logging.info(f"Starting question generation with default data: {data}")
+        
+        # Generate questions using mylang4
+        out = mylang4.question_generator.generate_questions(data, vectorstore, mylang4.question_verifier)
+        
+        logging.info(f"Question generation completed successfully")
+        
+        return jsonify({'success': True, 'output': out})
+        
+    except Exception as e:
+        logging.error(f"Error in mylang_test_get endpoint: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+

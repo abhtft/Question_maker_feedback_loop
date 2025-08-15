@@ -18,7 +18,7 @@ import io
 import asyncio
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-import mylang4  # Import the LangChain module
+import mylang4_openai  # Import the LangChain module
 from langchain.vectorstores import Chroma
 
 # Load environment variables
@@ -393,16 +393,16 @@ async def generate_questions():
                 # Get the vectorstore
                 vectorstore = Chroma(
                     persist_directory="vectorstore",
-                    embedding_function=mylang4.document_processor.embeddings
+                    embedding_function=mylang4_openai.document_processor.embeddings
                 )
                 
                 # Generate questions using LangChain
-                questions = mylang4.question_generator.generate_questions(topic_data, vectorstore)
+                questions = mylang4_openai.question_generator.generate_questions(topic_data, vectorstore)
                 
                 # Evaluate questions
                 evaluated_questions = []
                 for question in questions['questions']:
-                    evaluation = mylang4.question_evaluator.evaluate_question(
+                    evaluation = mylang4_openai.question_evaluator.evaluate_question(
                         question,
                         topic_data['sectionName']
                     )
@@ -596,7 +596,7 @@ def upload_note():
 
         try:
             # Process document using LangChain
-            vectorstore, chunks = mylang4.document_processor.process_uploaded_document(temp_path)
+            vectorstore, chunks = mylang4_openai.document_processor.process_uploaded_document(temp_path)
             
             # Extract text content from chunks
             text_content = "\n".join([chunk.page_content for chunk in chunks])

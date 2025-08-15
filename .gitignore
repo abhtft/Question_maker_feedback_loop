@@ -79,9 +79,11 @@ generated_questions.json
 temp/
 blob
 recording.wav
-
+mylang/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+azurel/
 
 # Office temp files
 ~$*

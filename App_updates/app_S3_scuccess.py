@@ -18,7 +18,7 @@ import io
 import asyncio
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-import mylang4  # Import the LangChain module
+import mylang4_openai  # Import the LangChain module
 from langchain.vectorstores import Chroma
 from langchain.embeddings import OpenAIEmbeddings
 import tempfile
@@ -557,7 +557,7 @@ def analyse_note():
         # Process with mylang1 to create vectorstore
         vectorstore_path = f'vectorstores/{note_id}'
         os.makedirs(vectorstore_path, exist_ok=True)
-        vectorstore, chunks = mylang4.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
+        vectorstore, chunks = mylang4_openai.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
 
         # Update note record with vectorstore path
         db['notes'].update_one({'_id': ObjectId(note_id)}, {'$set': {'vectorstore_path': vectorstore_path}})
