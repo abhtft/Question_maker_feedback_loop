@@ -5,14 +5,12 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate  
 import os  
 from dotenv import load_dotenv  
-from typing import Dict, List, Any, Tuple, Optional  
+from typing import Dict, List, Any, Tuple  
 import logging  
 import tiktoken  
 import json  
 import re  
-import hashlib
-from datetime import datetime
-
+  
 # Load environment variables  
 load_dotenv()  
   
@@ -56,9 +54,10 @@ def safe_json_loads(text: str, default: Any = None) -> Any:
                 logger.error(f"Regex JSON parse failed: {e}")  
         logger.error("Failed to parse JSON; returning default.")  
         return default  
-
+  
+  
 # -------------------------------  
-# Enhanced Document Processor with Smart Chunking  
+# Document Processor  
 # -------------------------------  
 class DocumentProcessor:  
     def __init__(self):  
@@ -68,115 +67,21 @@ class DocumentProcessor:
             azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
             api_key=os.getenv('AZURE_OPENAI_API_KEY'),  
         )  
-        
-        # Enhanced text splitters for different content types
-        self.text_splitters = {
-            'default': RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200,
-                length_function=len,
-                separators=["\n\n", "\n", " ", ""]
-            ),
-            'mathematics': RecursiveCharacterTextSplitter(
-                chunk_size=800,  # Smaller chunks for math (formulas, equations)
-                chunk_overlap=150,
-                length_function=len,
-                separators=["\n\n", "\n", " ", ""]
-            ),
-            'science': RecursiveCharacterTextSplitter(
-                chunk_size=1200,  # Larger chunks for science concepts
-                chunk_overlap=250,
-                length_function=len,
-                separators=["\n\n", "\n", " ", ""]
-            ),
-            'literature': RecursiveCharacterTextSplitter(
-                chunk_size=1500,  # Larger chunks for literature
-                chunk_overlap=300,
-                length_function=len,
-                separators=["\n\n", "\n", " ", ""]
-            )
-        }
-
-    def _detect_content_type(self, text: str) -> str:
-        """Detect content type based on text characteristics"""
-        text_lower = text.lower()
-        
-        # Mathematics indicators
-        math_indicators = ['equation', 'formula', 'calculate', 'solve', 'mathematics', 'math', 'algebra', 'geometry', 'trigonometry', 'calculus', '+', '-', '*', '/', '=', '√', 'π', '∫', '∑']
-        math_score = sum(1 for indicator in math_indicators if indicator in text_lower)
-        
-        # Science indicators
-        science_indicators = ['experiment', 'hypothesis', 'theory', 'molecule', 'atom', 'cell', 'organism', 'physics', 'chemistry', 'biology', 'laboratory', 'observation', 'conclusion']
-        science_score = sum(1 for indicator in science_indicators if indicator in text_lower)
-        
-        # Literature indicators
-        literature_indicators = ['poem', 'story', 'novel', 'character', 'plot', 'theme', 'metaphor', 'simile', 'literature', 'english', 'grammar', 'vocabulary', 'comprehension']
-        literature_score = sum(1 for indicator in literature_indicators if indicator in text_lower)
-        
-        # Determine content type
-        if math_score > max(science_score, literature_score):
-            return 'mathematics'
-        elif science_score > literature_score:
-            return 'science'
-        elif literature_score > 0:
-            return 'literature'
-        else:
-            return 'default'
-
-    def _enhance_metadata(self, doc, content_type: str, subject: str = None, grade: str = None) -> Dict[str, Any]:
-        """Add enhanced metadata to documents"""
-        metadata = doc.metadata.copy()
-        metadata.update({
-            'content_type': content_type,
-            'subject': subject or 'unknown',
-            'grade': grade or 'unknown',
-            'chunk_id': hashlib.md5(doc.page_content.encode()).hexdigest()[:8],
-            'processed_at': datetime.now().isoformat(),
-            'word_count': len(doc.page_content.split()),
-            'quality_score': self._calculate_quality_score(doc.page_content)
-        })
-        return metadata
-
-    def _calculate_quality_score(self, text: str) -> float:
-        """Calculate quality score for content filtering"""
-        if not text or len(text.strip()) < 50:
-            return 0.0
-        
-        # Quality indicators
-        has_sentences = len([s for s in text.split('.') if len(s.strip()) > 10]) > 0
-        has_paragraphs = len([p for p in text.split('\n\n') if len(p.strip()) > 50]) > 0
-        has_structure = any(char in text for char in [':', '-', '•', '*'])
-        
-        score = 0.0
-        if has_sentences: score += 0.4
-        if has_paragraphs: score += 0.3
-        if has_structure: score += 0.3
-        
-        return min(score, 1.0)
-
-    def process_uploaded_document(self, pdf_path, persist_directory=None, subject: str = None, grade: str = None) -> Tuple[Any, List[Any]]:  
+        self.text_splitter = RecursiveCharacterTextSplitter(  
+            chunk_size=1000,  
+            chunk_overlap=200,  
+            length_function=len,  
+            separators=["\n\n", "\n", " ", ""]  
+        )  
+  
+    def process_uploaded_document(self, pdf_path, persist_directory=None) -> Tuple[Any, List[Any]]:  
         try:  
             loader = PyPDFLoader(pdf_path)  
             pages = loader.load()  
-            
-            # Enhanced processing with content type detection
-            enhanced_texts = []
-            for page in pages:
-                content_type = self._detect_content_type(page.page_content)
-                splitter = self.text_splitters.get(content_type, self.text_splitters['default'])
-                chunks = splitter.split_documents([page])
-                
-                # Add enhanced metadata to each chunk
-                for chunk in chunks:
-                    chunk.metadata = self._enhance_metadata(chunk, content_type, subject, grade)
-                    # Filter out low-quality chunks
-                    if chunk.metadata.get('quality_score', 0) > 0.3:
-                        enhanced_texts.append(chunk)
-            
-            logger.info(f"Processed PDF '{pdf_path}' into {len(enhanced_texts)} quality chunks (filtered from {sum(len(splitter.split_documents([page])) for page in pages)} total chunks)")
-            
+            texts = self.text_splitter.split_documents(pages)  
+  
             vectorstore = FAISS.from_documents(  
-                documents=enhanced_texts,  
+                documents=texts,  
                 embedding=self.embeddings  
             )  
   
@@ -185,196 +90,13 @@ class DocumentProcessor:
             else:  
                 vectorstore.save_local("./faiss_index")  
   
-            return vectorstore, enhanced_texts  
+            logger.info(f"Processed PDF '{pdf_path}' into {len(texts)} chunks")  
+            return vectorstore, texts  
         except Exception as e:  
             logger.error(f"Error processing document: {str(e)}")  
             raise  
-
-# -------------------------------  
-# Enhanced Context Retrieval System  
-# -------------------------------  
-class EnhancedContextRetriever:
-    def __init__(self, vectorstore: Any):
-        self.vectorstore = vectorstore
-        
-    def _build_semantic_query(self, topic_data: Dict[str, Any]) -> str:
-        """Build enhanced semantic query based on topic data"""
-        subject = topic_data.get('subjectName', '').lower()
-        section = topic_data.get('sectionName', '').lower()
-        difficulty = topic_data.get('difficulty', '').lower()
-        bloom_level = topic_data.get('bloomLevel', '').lower()
-        grade = topic_data.get('classGrade', '').lower()
-        
-        # Enhanced query building with subject-specific terms
-        query_parts = []
-        
-        # Core topic
-        if section:
-            query_parts.append(section)
-        
-        # Subject-specific enhancements
-        if 'mathematics' in subject or 'math' in subject:
-            query_parts.extend(['mathematics', 'mathematical', 'calculation', 'problem solving'])
-        elif 'science' in subject:
-            query_parts.extend(['scientific', 'experiment', 'theory', 'concept'])
-        elif 'english' in subject or 'literature' in subject:
-            query_parts.extend(['literature', 'comprehension', 'grammar', 'vocabulary'])
-        elif 'history' in subject:
-            query_parts.extend(['historical', 'event', 'period', 'civilization'])
-        elif 'geography' in subject:
-            query_parts.extend(['geographical', 'location', 'region', 'environment'])
-        
-        # Difficulty-specific terms
-        if difficulty == 'easy':
-            query_parts.extend(['basic', 'fundamental', 'introductory'])
-        elif difficulty == 'hard':
-            query_parts.extend(['advanced', 'complex', 'challenging'])
-        
-        # Bloom's taxonomy terms
-        bloom_terms = {
-            'remember': ['recall', 'memorize', 'identify', 'define'],
-            'understand': ['explain', 'describe', 'interpret', 'summarize'],
-            'apply': ['apply', 'solve', 'use', 'implement'],
-            'analyze': ['analyze', 'compare', 'contrast', 'examine'],
-            'evaluate': ['evaluate', 'assess', 'judge', 'critique'],
-            'create': ['create', 'design', 'develop', 'construct']
-        }
-        if bloom_level in bloom_terms:
-            query_parts.extend(bloom_terms[bloom_level])
-        
-        # Grade-specific terms
-        if 'grade' in grade or 'class' in grade:
-            query_parts.append(grade)
-        
-        return ' '.join(query_parts)
-    
-    def _determine_search_parameters(self, topic_data: Dict[str, Any]) -> Tuple[int, int]:
-        """Determine optimal search parameters based on topic complexity"""
-        subject = topic_data.get('subjectName', '').lower()
-        difficulty = topic_data.get('difficulty', '').lower()
-        bloom_level = topic_data.get('bloomLevel', '').lower()
-        
-        # Base parameters
-        k_docs = 4
-        max_tokens = 1000
-        
-        # Adjust based on complexity
-        if difficulty == 'hard':
-            k_docs = 6
-            max_tokens = 1500
-        elif difficulty == 'easy':
-            k_docs = 3
-            max_tokens = 800
-        
-        # Adjust based on Bloom's level
-        if bloom_level in ['analyze', 'evaluate', 'create']:
-            k_docs = max(k_docs, 5)
-            max_tokens = max(max_tokens, 1200)
-        
-        # Adjust based on subject complexity
-        if 'mathematics' in subject:
-            k_docs = max(k_docs, 5)  # Math needs more context for formulas
-        elif 'science' in subject:
-            k_docs = max(k_docs, 4)  # Science needs balanced context
-        
-        return k_docs, max_tokens
-    
-    def get_enhanced_context(self, topic_data: Dict[str, Any]) -> str:
-        """Get enhanced context using improved retrieval strategies"""
-        try:
-            # Build semantic query
-            semantic_query = self._build_semantic_query(topic_data)
-            logger.info(f"Enhanced semantic query: {semantic_query}")
-            
-            # Determine search parameters
-            k_docs, max_tokens = self._determine_search_parameters(topic_data)
-            logger.info(f"Search parameters: k={k_docs}, max_tokens={max_tokens}")
-            
-            # Perform enhanced similarity search
-            docs = self.vectorstore.similarity_search(
-                semantic_query,
-                k=k_docs
-            )
-            
-            # Combine and rank documents
-            combined_content = self._combine_and_rank_documents(docs, topic_data)
-            
-            # Truncate to token limit
-            context = self._truncate_to_tokens(combined_content, max_tokens)
-            
-            logger.info(f"Retrieved context length: {len(context)} characters")
-            return context
-            
-        except Exception as e:
-            logger.error(f"Error in enhanced context retrieval: {e}")
-            return ""
-    
-    def _combine_and_rank_documents(self, docs: List[Any], topic_data: Dict[str, Any]) -> str:
-        """Combine documents with intelligent ranking"""
-        if not docs:
-            return ""
-        
-        # Score documents based on relevance
-        scored_docs = []
-        for doc in docs:
-            score = self._calculate_document_relevance(doc, topic_data)
-            scored_docs.append((score, doc))
-        
-        # Sort by relevance score
-        scored_docs.sort(key=lambda x: x[0], reverse=True)
-        
-        # Combine content with priority to higher-scored documents
-        combined_parts = []
-        for score, doc in scored_docs:
-            if score > 0.3:  # Only include relevant documents
-                combined_parts.append(doc.page_content.strip())
-        
-        return "\n\n".join(combined_parts)
-    
-    def _calculate_document_relevance(self, doc: Any, topic_data: Dict[str, Any]) -> float:
-        """Calculate relevance score for a document"""
-        content = doc.page_content.lower()
-        metadata = doc.metadata
-        
-        score = 0.0
-        
-        # Subject match
-        if topic_data.get('subjectName', '').lower() in content:
-            score += 0.3
-        
-        # Section match
-        if topic_data.get('sectionName', '').lower() in content:
-            score += 0.4
-        
-        # Metadata quality
-        if metadata.get('quality_score', 0) > 0.5:
-            score += 0.2
-        
-        # Content type match
-        subject = topic_data.get('subjectName', '').lower()
-        content_type = metadata.get('content_type', 'default')
-        if ('mathematics' in subject and content_type == 'mathematics') or \
-           ('science' in subject and content_type == 'science') or \
-           ('english' in subject and content_type == 'literature'):
-            score += 0.1
-        
-        return min(score, 1.0)
-    
-    def _truncate_to_tokens(self, text: str, max_tokens: int, model: str = "gpt-4") -> str:
-        """Truncate text to token limit"""
-        try:
-            enc = tiktoken.encoding_for_model(model)
-            tokens = enc.encode(text)
-            if len(tokens) <= max_tokens:
-                return text
-            
-            truncated_tokens = tokens[:max_tokens]
-            return enc.decode(truncated_tokens)
-        except Exception as e:
-            logger.error(f"Error in token truncation: {e}")
-            # Fallback to character-based truncation
-            return text[:max_tokens * 4]  # Rough approximation
-
+  
+  
 # -------------------------------  
 # Question Quality Verifier  
 # -------------------------------  
@@ -713,31 +435,7 @@ correct json format is given above.
   
         raise Exception("Failed to generate questions after maximum attempts")  
   
-    def _get_context(self, topic_data: Dict[str, Any], vectorstore: Any) -> str:  
-        """Get enhanced context using the new EnhancedContextRetriever"""
-        if not vectorstore:
-            return ""
-            
-        try:
-            # Use the enhanced context retriever
-            context_retriever = EnhancedContextRetriever(vectorstore)
-            context = context_retriever.get_enhanced_context(topic_data)
-            
-            if context:
-                logger.info(f"Enhanced context retrieved: {len(context)} characters")
-                logger.debug(f"Context preview: {context[:200]}...")
-            else:
-                logger.warning("No context retrieved from enhanced retriever")
-                
-            return context
-            
-        except Exception as e:
-            logger.error(f"Error in enhanced context retrieval: {e}")
-            # Fallback to basic context retrieval
-            return self._get_basic_context(topic_data, vectorstore)
-    
-    def _get_basic_context(self, topic_data: Dict[str, Any], vectorstore: Any) -> str:
-        """Fallback basic context retrieval method"""
+    def _get_context( self, topic_data: Dict[str, Any], vectorstore: Any) -> str:  
         def truncate_to_tokens(text: str, max_tokens: int = 4000, model: str = "gpt-4") -> str:  
             enc = tiktoken.encoding_for_model(model)  
             tokens = enc.encode(text)  
@@ -761,9 +459,9 @@ correct json format is given above.
                 )  
                 raw_context = "\n".join(doc.page_content.strip() for doc in docs)  
                 context = truncate_to_tokens(raw_context, max_tokens=1000, model="gpt-4")  
-                logger.info(f"Using fallback context from vectorstore (truncated): {context[:200]}...")  
+                logger.info(f"Using context from vectorstore (truncated): {context[:200]}...")  
             except Exception as e:  
-                logger.error(f"Error getting fallback context: {e}")  
+                logger.error(f"Error getting context: {e}")  
         return context  
   
     def _parse_llm_response(self, response: Any) -> Dict[str, Any]:  
@@ -833,22 +531,22 @@ document_processor = DocumentProcessor()
 question_generator = QuestionGenerator()  
 question_verifier = QuestionQualityVerifier()  
 
-# Enhanced components for Phase 1 improvements
-# These will be automatically used by the existing components
-# No changes needed to app.py integration
 
-"""
-PHASE 1 IMPROVEMENTS IMPLEMENTED:
-✅ Enhanced Document Processing with Smart Chunking
-✅ Metadata-Enhanced Storage with Quality Filtering
-✅ Enhanced Context Retrieval with Semantic Queries
-✅ Dynamic Search Parameters based on Topic Complexity
-✅ Content Type Detection and Specialized Chunking
-✅ Document Relevance Scoring and Ranking
+#prompt enhancement
+#knowledge base
+#how to find to the right knowledge base
+#prompt enhancer to use the right knowledge base(close match),enhance the prompt to use the right knowledge base.
 
-NEXT PHASES TO IMPLEMENT:
-Phase 2: Multi-Stage Retrieval, Query Enhancement, Caching
-Phase 3: Reranking with Cross-Encoders, Advanced Analytics
 
-OUTPUT FORMAT REMAINS UNCHANGED - FULL COMPATIBILITY WITH app.py
-""" 
+#research paper
+#Iso standard
+#personal DeprecationWarning
+#presntation
+#testing vedio
+# (image ,direction oriented,)
+# naming,mat property...
+# lamhauge
+
+
+
+#copilot 
