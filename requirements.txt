@@ -14,7 +14,7 @@ botocore==1.34.81
 azure-storage-blob==12.24.0
 
 # OpenAI and LangChain (Core only)
-openai==1.12.0
+openai>=1.12.0
 langchain>=0.1.0
 langchain-community>=0.0.27
 langchain-core>=0.1.0
@@ -38,8 +38,8 @@ pypdf==3.17.1
 faiss-cpu==1.7.4
 
 # Utilities (Essential only)
-pydantic==2.6.1
-tiktoken==0.6.0
+pydantic>=2.6.1
+tiktoken>=0.6.0
 
 # Core ML (Minimal)
 numpy==1.24.4
@@ -58,4 +58,6 @@ psutil==6.0.0
 # - Removed fastapi (using flask only)
 # - Removed unnecessary dependencies
 
+litellm==1.59.8
 
+-e d:/llmconfig/litellm

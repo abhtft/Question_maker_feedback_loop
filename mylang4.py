@@ -1,20 +1,50 @@
 from langchain_community.document_loaders import PyPDFLoader  
 from langchain_text_splitters import RecursiveCharacterTextSplitter  
-from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI  
+from langchain_openai import AzureOpenAIEmbeddings, AzureChatOpenAI, ChatOpenAI, OpenAIEmbeddings  
 from langchain_community.vectorstores import FAISS  
-from langchain_core.prompts import PromptTemplate  
+from langchain_core.prompts import PromptTemplate
+
 import os  
 from dotenv import load_dotenv  
 from typing import Dict, List, Any, Tuple, Optional  
 import logging  
+
 import tiktoken  
 import json  
 import re  
 import hashlib
 from datetime import datetime
 
+# Context Engineering Pipeline (Techniques 1-10)
+# See learning/context_engineering.md for detailed explanations
+try:
+    from context_engineering import ContextEngineeringPipeline
+    from context_engineering.prompt_router import FewShotSelector
+    CONTEXT_ENGINEERING_AVAILABLE = True
+    logger_init = logging.getLogger(__name__)
+    logger_init.info("Context Engineering Pipeline loaded successfully")
+except ImportError as _ce_err:
+    CONTEXT_ENGINEERING_AVAILABLE = False
+    logger_init = logging.getLogger(__name__)
+    logger_init.warning(f"Context Engineering Pipeline not available: {_ce_err}. "
+                        f"Using original prompts.")
+
 # Load environment variables  
 load_dotenv()  
+
+"""
+Form of sample input JSON
+{
+  "subjectName": "Mathematics",
+  "classGrade": "Grade 10",
+    "sectionName": "Quadratic Equations",
+    "difficulty": "Medium",
+    "bloomLevel": "Apply",
+    "questionType": "MCQ",
+    "numQuestion
+    Instructions": "Focus on real-world applications of quadratic equations."
+}
+"""
   
 # Configure logging  
 logging.basicConfig(level=logging.INFO)  
@@ -30,7 +60,8 @@ def safe_json_loads(text: str, default: Any = None) -> Any:
     the first valid JSON object found. Returns `default` on failure.  
     """  
     try:  
-        # Ensure text is a string
+        #used to remove backstring and json word from llm output
+        # Ensure text is a string(safety check)
         if not isinstance(text, str):
             text = str(text)
             
@@ -62,14 +93,23 @@ def safe_json_loads(text: str, default: Any = None) -> Any:
 # -------------------------------  
 class DocumentProcessor:  
     def __init__(self):  
-        self.embeddings = AzureOpenAIEmbeddings(  
-            azure_deployment='text-embedding-3-large',  
-            api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-            azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-            api_key=os.getenv('AZURE_OPENAI_API_KEY'),  
-        )  
+        #methods and attr. related to langchain
+        azure_key = os.getenv('AZURE_OPENAI_API_KEY')
+        if azure_key:
+            self.embeddings = AzureOpenAIEmbeddings(  
+                azure_deployment='text-embedding-3-large',  
+                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                api_key=azure_key,  
+            )  
+        else:
+            # Fallback to standard OpenAIEmbeddings (which can also work with other backends if configured)
+            self.embeddings = OpenAIEmbeddings(
+                openai_api_key=os.getenv('OPENAI_API_KEY', 'placeholder')
+            )  
         
         # Enhanced text splitters for different content types
+        #dict
         self.text_splitters = {
             'default': RecursiveCharacterTextSplitter(
                 chunk_size=1000,
@@ -77,6 +117,7 @@ class DocumentProcessor:
                 length_function=len,
                 separators=["\n\n", "\n", " ", ""]
             ),
+
             'mathematics': RecursiveCharacterTextSplitter(
                 chunk_size=800,  # Smaller chunks for math (formulas, equations)
                 chunk_overlap=150,
@@ -97,6 +138,9 @@ class DocumentProcessor:
             )
         }
 
+    #for content type detection:
+    #1.manual detection:regext not good now
+    #ai detection:based on keywords
     def _detect_content_type(self, text: str) -> str:
         """Detect content type based on text characteristics"""
         text_lower = text.lower()
@@ -113,7 +157,7 @@ class DocumentProcessor:
         literature_indicators = ['poem', 'story', 'novel', 'character', 'plot', 'theme', 'metaphor', 'simile', 'literature', 'english', 'grammar', 'vocabulary', 'comprehension']
         literature_score = sum(1 for indicator in literature_indicators if indicator in text_lower)
         
-        # Determine content type
+        # Determine content type (A,B,C)
         if math_score > max(science_score, literature_score):
             return 'mathematics'
         elif science_score > literature_score:
@@ -123,8 +167,17 @@ class DocumentProcessor:
         else:
             return 'default'
 
+
     def _enhance_metadata(self, doc, content_type: str, subject: str = None, grade: str = None) -> Dict[str, Any]:
-        """Add enhanced metadata to documents"""
+        """Add enhanced metadata to documents
+        1. content type
+        2. subject and grade
+        3. unique chunk ID
+        4. processing timestamp
+        5. word count
+        6. quality score for filtering
+        """
+        
         metadata = doc.metadata.copy()
         metadata.update({
             'content_type': content_type,
@@ -137,6 +190,7 @@ class DocumentProcessor:
         })
         return metadata
 
+        #protected
     def _calculate_quality_score(self, text: str) -> float:
         """Calculate quality score for content filtering"""
         if not text or len(text.strip()) < 50:
@@ -153,6 +207,8 @@ class DocumentProcessor:
         if has_structure: score += 0.3
         
         return min(score, 1.0)
+
+        #udnerstanding by structure /usage
 
     def process_uploaded_document(self, pdf_path, persist_directory=None, subject: str = None, grade: str = None) -> Tuple[Any, List[Any]]:  
         try:  
@@ -331,6 +387,8 @@ class EnhancedContextRetriever:
         
         return "\n\n".join(combined_parts)
     
+
+    
     def _calculate_document_relevance(self, doc: Any, topic_data: Dict[str, Any]) -> float:
         """Calculate relevance score for a document"""
         content = doc.page_content.lower()
@@ -381,13 +439,31 @@ class EnhancedContextRetriever:
 
 class QuestionQualityVerifier:  
     def __init__(self):  
-        self.llm = AzureChatOpenAI(  
-            azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
-            api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-            temperature=0,  
-            azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-            api_key=os.getenv('AZURE_OPENAI_API_KEY'),  
-        )  
+        azure_key = os.getenv('AZURE_OPENAI_API_KEY')
+        openrouter_key = os.getenv('OPENROUTER_API_KEY')
+        
+        if azure_key:
+            self.llm = AzureChatOpenAI(  
+                azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                temperature=0,  
+                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                api_key=azure_key,  
+            )  
+        elif openrouter_key:
+            self.llm = ChatOpenAI(
+                openai_api_key=openrouter_key,
+                openai_api_base='https://openrouter.ai/api/v1',
+                model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                temperature=0
+            )
+        else:
+            self.llm = ChatOpenAI(
+                openai_api_key="placeholder",
+                openai_api_base='https://openrouter.ai/api/v1',
+                model_name='openai/gpt-4o',
+                temperature=0
+            )  
   
         # ✅ Fixed: Properly escaped curly braces for LangChain PromptTemplate
         self.verification_template = """  
@@ -520,13 +596,31 @@ Do not include any text outside the JSON.
 # -------------------------------  
 class QuestionGenerator:  
     def __init__(self):  
-        self.llm = AzureChatOpenAI(  
-            azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
-            api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-            temperature=0.0,  # Lower temp for more predictable JSON  
-            azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-            api_key=os.getenv('AZURE_OPENAI_API_KEY'),  
-        )  
+        azure_key = os.getenv('AZURE_OPENAI_API_KEY')
+        openrouter_key = os.getenv('OPENROUTER_API_KEY')
+        
+        if azure_key:
+            self.llm = AzureChatOpenAI(  
+                azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                temperature=0.0,  # Lower temp for more predictable JSON  
+                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                api_key=azure_key,  
+            )  
+        elif openrouter_key:
+            self.llm = ChatOpenAI(
+                openai_api_key=openrouter_key,
+                openai_api_base='https://openrouter.ai/api/v1',
+                model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                temperature=0.0
+            )
+        else:
+            self.llm = ChatOpenAI(
+                openai_api_key="placeholder",
+                openai_api_base='https://openrouter.ai/api/v1',
+                model_name='openai/gpt-4o',
+                temperature=0.0
+            )  
   
         # ======== Your Original Question Prompt ========  
         self.question_template = """  
@@ -833,9 +927,28 @@ document_processor = DocumentProcessor()
 question_generator = QuestionGenerator()  
 question_verifier = QuestionQualityVerifier()  
 
-# Enhanced components for Phase 1 improvements
-# These will be automatically used by the existing components
-# No changes needed to app.py integration
+# Initialize Context Engineering Pipeline (wraps around existing components)
+# This adds Techniques 1-10 from learning/context_engineering.md
+context_pipeline = None
+if CONTEXT_ENGINEERING_AVAILABLE:
+    try:
+        context_pipeline = ContextEngineeringPipeline(
+            llm=None,  # Set to a cheap LLM to enable summarization (Technique 5)
+            embeddings=document_processor.embeddings,  # Reuse existing embeddings for cache
+            config={
+                'enable_summarization': False,  # Set True to enable Technique 5 (adds latency)
+                'enable_cache': True,            # Technique 10: Semantic Caching
+                'trim_mode': 'sentence_boundary', # Technique 4: sentence-aware trimming
+                'max_tokens': 1000,
+                'cache_threshold': 0.92,
+                'few_shot_count': 2,              # Technique 3: inject 2 examples
+            }
+        )
+        logger.info("Context Engineering Pipeline initialized and ready")
+    except Exception as _pipe_err:
+        logger.warning(f"Failed to initialize Context Engineering Pipeline: {_pipe_err}. "
+                       f"Falling back to original behavior.")
+        context_pipeline = None
 
 """
 PHASE 1 IMPROVEMENTS IMPLEMENTED:
@@ -846,9 +959,18 @@ PHASE 1 IMPROVEMENTS IMPLEMENTED:
 ✅ Content Type Detection and Specialized Chunking
 ✅ Document Relevance Scoring and Ranking
 
-NEXT PHASES TO IMPLEMENT:
-Phase 2: Multi-Stage Retrieval, Query Enhancement, Caching
-Phase 3: Reranking with Cross-Encoders, Advanced Analytics
+CONTEXT ENGINEERING TECHNIQUES (Phase 2):
+✅ Technique 1: Classified Parameter Routing (prompt_router.py)
+✅ Technique 2: Template-Data Separation (prompt_router.py)
+✅ Technique 3: Few-Shot Example Injection (prompt_router.py)
+✅ Technique 4: Trimming with sentence/paragraph modes (context_compressor.py)
+✅ Technique 5: Summarization / Context Distillation (context_compressor.py)
+✅ Technique 6: Pruning / Quality Gating (context_compressor.py)
+✅ Technique 7: Strategic Ordering / Primacy-Recency (context_placer.py)
+✅ Technique 8: Sliding Window + Anchoring (context_placer.py)
+✅ Technique 9: RAG with Reranking (existing in EnhancedContextRetriever)
+✅ Technique 10: Semantic Caching (context_cache.py)
 
+See learning/context_engineering.md for detailed explanations of each technique.
 OUTPUT FORMAT REMAINS UNCHANGED - FULL COMPATIBILITY WITH app.py
-""" 
+""" 

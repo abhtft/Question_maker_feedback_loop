@@ -1,0 +1,187 @@
+{
+    "mathematics": {
+        "MCQ": [
+            {
+                "difficulty": "Easy",
+                "bloom_level": "Remember",
+                "example": {
+                    "question": "What is the value of 7 × 8?",
+                    "options": ["54", "56", "58", "64"],
+                    "answer": "56",
+                    "explanation": "7 × 8 = 56. This is a basic multiplication fact from the multiplication table."
+                }
+            },
+            {
+                "difficulty": "Medium",
+                "bloom_level": "Apply",
+                "example": {
+                    "question": "A rectangle has a length of 12 cm and a width of 5 cm. What is its area?",
+                    "options": ["17 cm²", "34 cm²", "60 cm²", "120 cm²"],
+                    "answer": "60 cm²",
+                    "explanation": "Area of a rectangle = length × width = 12 × 5 = 60 cm². The formula requires multiplication of the two dimensions."
+                }
+            },
+            {
+                "difficulty": "Hard",
+                "bloom_level": "Analyze",
+                "example": {
+                    "question": "For the quadratic equation x² - 5x + 6 = 0, which statement about its roots is correct?",
+                    "options": [
+                        "Both roots are negative",
+                        "Both roots are positive and their sum is 5",
+                        "The roots are imaginary",
+                        "One root is positive and one is negative"
+                    ],
+                    "answer": "Both roots are positive and their sum is 5",
+                    "explanation": "By Vieta's formulas, the sum of roots = -(-5)/1 = 5 and the product = 6/1 = 6. Since both sum and product are positive, both roots must be positive. Factoring: (x-2)(x-3) = 0, giving roots 2 and 3."
+                }
+            },
+            {
+                "difficulty": "Hard",
+                "bloom_level": "Evaluate",
+                "example": {
+                    "question": "A student claims that √(a² + b²) = a + b for all positive values of a and b. Which of the following best evaluates this claim?",
+                    "options": [
+                        "The claim is correct by the distributive property",
+                        "The claim is incorrect; √(a² + b²) ≥ a + b always",
+                        "The claim is incorrect; √(a² + b²) < a + b for all positive a, b",
+                        "The claim is correct only when a = b"
+                    ],
+                    "answer": "The claim is incorrect; √(a² + b²) < a + b for all positive a, b",
+                    "explanation": "Squaring both sides: a² + b² vs (a+b)² = a² + 2ab + b². Since 2ab > 0 for positive a, b, we have (a+b)² > a² + b², so a + b > √(a² + b²). The student confused the square root of a sum with the sum of square roots."
+                }
+            }
+        ]
+    },
+    "science": {
+        "MCQ": [
+            {
+                "difficulty": "Easy",
+                "bloom_level": "Remember",
+                "example": {
+                    "question": "Which planet in our solar system is known as the 'Red Planet'?",
+                    "options": ["Venus", "Mars", "Jupiter", "Saturn"],
+                    "answer": "Mars",
+                    "explanation": "Mars is called the Red Planet because iron oxide (rust) on its surface gives it a reddish appearance when viewed from Earth."
+                }
+            },
+            {
+                "difficulty": "Medium",
+                "bloom_level": "Understand",
+                "example": {
+                    "question": "Why does ice float on water?",
+                    "options": [
+                        "Ice has more mass than water",
+                        "Ice is less dense than liquid water because water expands when it freezes",
+                        "Ice contains air bubbles that make it lighter",
+                        "The surface tension of water pushes ice upward"
+                    ],
+                    "answer": "Ice is less dense than liquid water because water expands when it freezes",
+                    "explanation": "Water is unusual — it expands by about 9% when it freezes. The hydrogen bonds in ice form an open crystalline structure, making ice less dense (0.92 g/cm³) than liquid water (1.0 g/cm³). Objects less dense than the liquid they are in will float."
+                }
+            },
+            {
+                "difficulty": "Hard",
+                "bloom_level": "Analyze",
+                "example": {
+                    "question": "In a food chain: Grass → Grasshopper → Frog → Snake → Hawk, if a pesticide is introduced that accumulates in fatty tissues, which organism would have the highest concentration of the pesticide?",
+                    "options": ["Grass", "Grasshopper", "Snake", "Hawk"],
+                    "answer": "Hawk",
+                    "explanation": "This demonstrates biological magnification (biomagnification). The pesticide concentration increases at each trophic level because each consumer accumulates the toxins from all the organisms it eats. The hawk, as the top predator, would have the highest concentration."
+                }
+            }
+        ]
+    },
+    "english": {
+        "MCQ": [
+            {
+                "difficulty": "Easy",
+                "bloom_level": "Remember",
+                "example": {
+                    "question": "Which of the following is a noun?",
+                    "options": ["quickly", "happiness", "beautiful", "running"],
+                    "answer": "happiness",
+                    "explanation": "'Happiness' is a noun — it names a feeling/state. 'Quickly' is an adverb, 'beautiful' is an adjective, and 'running' in this context functions as a gerund/verb form."
+                }
+            },
+            {
+                "difficulty": "Medium",
+                "bloom_level": "Understand",
+                "example": {
+                    "question": "In the sentence 'The old man and the sea battled fiercely', which literary device is primarily used?",
+                    "options": ["Simile", "Personification", "Alliteration", "Metaphor"],
+                    "answer": "Personification",
+                    "explanation": "The sea is given a human quality — the ability to 'battle' — which is personification. The sea cannot literally fight; this device makes the conflict between man and nature more vivid and relatable."
+                }
+            },
+            {
+                "difficulty": "Hard",
+                "bloom_level": "Evaluate",
+                "example": {
+                    "question": "A critic argues that Shakespeare's use of the 'play within a play' in Hamlet serves no real purpose to the plot. Which response best counters this argument?",
+                    "options": [
+                        "The play-within-a-play is merely entertainment for the court",
+                        "It serves as Hamlet's deliberate test to confirm Claudius's guilt through his reaction",
+                        "Shakespeare included it only because it was a popular theatrical convention",
+                        "The play-within-a-play is unrelated to the main themes of the work"
+                    ],
+                    "answer": "It serves as Hamlet's deliberate test to confirm Claudius's guilt through his reaction",
+                    "explanation": "The 'Mousetrap' play is central to the plot — Hamlet uses it as evidence-gathering, watching Claudius's reaction to a scene mirroring the murder. It advances the theme of appearance vs. reality and moves Hamlet from indecision to action."
+                }
+            }
+        ]
+    },
+    "history": {
+        "MCQ": [
+            {
+                "difficulty": "Easy",
+                "bloom_level": "Remember",
+                "example": {
+                    "question": "In which year did India gain independence from British rule?",
+                    "options": ["1942", "1945", "1947", "1950"],
+                    "answer": "1947",
+                    "explanation": "India gained independence on August 15, 1947. The Indian Independence Act was passed by the British Parliament in July 1947, ending nearly 200 years of British colonial rule."
+                }
+            },
+            {
+                "difficulty": "Medium",
+                "bloom_level": "Understand",
+                "example": {
+                    "question": "What was the primary economic cause of the French Revolution of 1789?",
+                    "options": [
+                        "France's trade surplus with England",
+                        "Severe financial crisis due to war debts and an inequitable tax system",
+                        "The discovery of gold in French colonies",
+                        "A sudden increase in agricultural productivity"
+                    ],
+                    "answer": "Severe financial crisis due to war debts and an inequitable tax system",
+                    "explanation": "France was nearly bankrupt from expensive wars (including supporting the American Revolution) while the tax burden fell almost entirely on the Third Estate (commoners). The nobility and clergy were largely exempt, creating deep resentment."
+                }
+            }
+        ]
+    },
+    "geography": {
+        "MCQ": [
+            {
+                "difficulty": "Easy",
+                "bloom_level": "Remember",
+                "example": {
+                    "question": "Which is the longest river in the world?",
+                    "options": ["Amazon", "Yangtze", "Nile", "Mississippi"],
+                    "answer": "Nile",
+                    "explanation": "The Nile River, flowing through northeastern Africa, is approximately 6,650 km long, making it the longest river in the world. The Amazon is the largest by water volume but slightly shorter in length."
+                }
+            },
+            {
+                "difficulty": "Medium",
+                "bloom_level": "Apply",
+                "example": {
+                    "question": "A city located at 0° latitude and 30° East longitude would be in which climate zone?",
+                    "options": ["Polar", "Temperate", "Tropical", "Subtropical"],
+                    "answer": "Tropical",
+                    "explanation": "0° latitude is the Equator. Regions near the Equator (between 23.5°N and 23.5°S) fall in the Tropical zone, characterized by warm temperatures year-round and significant rainfall. This specific location would be near Lake Victoria in East Africa."
+                }
+            }
+        ]
+    }
+}

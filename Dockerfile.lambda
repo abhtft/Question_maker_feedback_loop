@@ -1,0 +1,15 @@
+# Use the official AWS Lambda Python base image
+FROM public.ecr.aws/lambda/python:3.10
+
+# Copy requirements.txt to the Lambda task root directory
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/
+
+# Install Python dependencies in the task root
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy all application files (including qplambda.py, mylang4.py, Utility/) to the task root
+COPY . ${LAMBDA_TASK_ROOT}/
+
+# Set the CMD to the handler file and function name
+CMD ["qplambda.lambda_handler"]
