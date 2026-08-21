@@ -20,6 +20,13 @@ export default defineConfig({
     https: useHttps ? {
       key: fs.readFileSync(keyPath),
       cert: fs.readFileSync(certPath),
-    } : false
+    } : false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 }) 

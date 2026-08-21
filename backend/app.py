@@ -1,3 +1,7 @@
+"""
+python backend/app.py
+"""
+
 import os
 import sys
 import logging
@@ -55,7 +59,7 @@ load_dotenv()
 
 
 # Initialize Flask app
-app = Flask(__name__, static_folder='dist', static_url_path='')
+app = Flask(__name__, static_folder='../dist', static_url_path='')
 
 def generate_email(data):
     return f"""

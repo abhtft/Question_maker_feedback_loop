@@ -35,7 +35,7 @@ This is a Flask application that generates question papers based on uploaded not
 4. Create a `.env` file with the required environment variables
 5. Run the application:
    ```bash
-   python app.py
+   python backend/app.py
    ```
 
 ## API Endpoints
@@ -47,7 +47,7 @@ This is a Flask application that generates question papers based on uploaded not
 
 ## Directory Structure
 
-- `app.py`: Main application file
+- `backend/app.py`: Main application file
 - `mylang4/`: Custom language processing module
 - `Utility/`: Utility functions including PDF generation
 - `logging/`: Application logs
