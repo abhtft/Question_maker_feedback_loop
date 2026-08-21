@@ -25,13 +25,10 @@ print("Logging to:", os.path.abspath(log_filename))  # Add this for debugging
 
 from flask import Flask, request, jsonify, send_from_directory, make_response
 from flask_cors import CORS
-from pymongo import MongoClient
-
 from dotenv import load_dotenv
 import pytz
 import openai
 import json
-from bson import ObjectId
 import httpx
 import boto3
 from botocore.exceptions import ClientError
@@ -84,21 +81,74 @@ CORS(app, resources={
 })
 
 
-# Initialize MongoDB with configurable database and collections
-try:
-    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
-    DB_NAME = os.getenv('DB_NAME', 'question_paper_db')
-    REQUEST_COLLECTION = os.getenv('REQUEST_COLLECTION', 'question_requests')
-    PAPER_COLLECTION = os.getenv('PAPER_COLLECTION', 'question_papers')
+# Initialize DynamoDB with configurable table names and connection
+import uuid
+from decimal import Decimal
+
+def convert_floats_to_decimals(obj):
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    elif isinstance(obj, dict):
+        return {k: convert_floats_to_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_floats_to_decimals(v) for v in obj]
+    return obj
+
+def ensure_tables_exist(dynamodb_resource, req_table, pap_table, not_table):
+    tables = {
+        req_table: 'request_id',
+        pap_table: 'paper_id',
+        not_table: 'note_id'
+    }
     
-    client = MongoClient(MONGODB_URI)
-    db = client[DB_NAME]
-    requests_collection = db[REQUEST_COLLECTION]
-    papers_collection = db[PAPER_COLLECTION]
-    logging.info("MongoDB Connection Successful!")
+    for table_name, pk in tables.items():
+        try:
+            table = dynamodb_resource.Table(table_name)
+            table.load()
+            logging.info(f"DynamoDB Table '{table_name}' verified.")
+        except Exception:
+            logging.info(f"DynamoDB Table '{table_name}' not found. Creating table...")
+            try:
+                dynamodb_resource.create_table(
+                    TableName=table_name,
+                    KeySchema=[
+                        {'AttributeName': pk, 'KeyType': 'HASH'}
+                    ],
+                    AttributeDefinitions=[
+                        {'AttributeName': pk, 'AttributeType': 'S'}
+                    ],
+                    ProvisionedThroughput={
+                        'ReadCapacityUnits': 5,
+                        'WriteCapacityUnits': 5
+                    }
+                )
+                logging.info(f"DynamoDB Table '{table_name}' creation initiated successfully.")
+            except Exception as create_err:
+                logging.error(f"Failed to create DynamoDB Table '{table_name}': {create_err}")
+
+try:
+    dynamodb = boto3.resource(
+        'dynamodb',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'us-east-1')
+    )
+    
+    REQUEST_TABLE = os.getenv('DYNAMODB_TABLE_REQUESTS', 'question_requests')
+    PAPER_TABLE = os.getenv('DYNAMODB_TABLE_PAPERS', 'question_papers')
+    NOTES_TABLE = os.getenv('DYNAMODB_TABLE_NOTES', 'notes')
+    
+    ensure_tables_exist(dynamodb, REQUEST_TABLE, PAPER_TABLE, NOTES_TABLE)
+    
+    requests_table = dynamodb.Table(REQUEST_TABLE)
+    papers_table = dynamodb.Table(PAPER_TABLE)
+    notes_table = dynamodb.Table(NOTES_TABLE)
+    logging.info("DynamoDB Connection Successful!")
 except Exception as e:
-    logging.info(f"MongoDB Connection Error: {e}")
-    db = None
+    logging.error(f"DynamoDB Connection Error: {e}")
+    requests_table = None
+    papers_table = None
+    notes_table = None
 
 # Initialize OpenAI client (only if Azure credentials are configured)
 # Note: mylang4.py handles its own LLM initialization and supports both
@@ -199,7 +249,10 @@ def generate_questions():
 
         # Insert request metadata
         data['created_at'] = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S')
-        request_id = requests_collection.insert_one(data).inserted_id
+        request_id = str(uuid.uuid4())
+        data['request_id'] = request_id
+        if requests_table:
+            requests_table.put_item(Item=convert_floats_to_decimals(data))
 
         # Load vectorstore if exists
         vectorstore_path = "vectorstores/latest"
@@ -262,14 +315,17 @@ def generate_questions():
                 'cached': False
             })
 
-        # Save to MongoDB
+        # Save to DynamoDB
+        paper_id = str(uuid.uuid4())
         paper_data = {
+            'paper_id': paper_id,
             'request_id': str(request_id),
             'questions': all_questions,
             'created_at': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S'),
             'previous_paper_id': data.get('previous_paper_id')
         }
-        paper_id = papers_collection.insert_one(paper_data).inserted_id
+        if papers_table:
+            papers_table.put_item(Item=convert_floats_to_decimals(paper_data))
 
         # Generate PDFs
         pdf_filename = f"question_paper_{paper_id}.pdf"
@@ -456,15 +512,17 @@ def upload_note():
             ExtraArgs={'ContentType': 'application/pdf'}
         )
         logging.info(f"File uploaded to S3: {filename}")
-        # Save note metadata to MongoDB
+        # Save note metadata to DynamoDB
+        note_id = str(uuid.uuid4())
         note_data = {
+            'note_id': note_id,
             'filename': filename,
             'original_name': file.filename,
             'uploaded_at': datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S'),
             's3_url': f"s3://{NOTES_BUCKET}/{filename}"
         }
-        notes_collection = db['notes']
-        note_id = notes_collection.insert_one(note_data).inserted_id
+        if notes_table:
+            notes_table.put_item(Item=convert_floats_to_decimals(note_data))
 
         return jsonify({
             'success': True,
@@ -513,6 +571,27 @@ if __name__ == '__main__':
         port=port,
         debug=True
     )
+
+
+
+    """
+    curl -X POST "http://localhost:5000/api/generate-questions" `
+  -H "Content-Type: application/json" `
+  -d '{
+    "email": "student@example.com",
+    "subjectName": "Mathematics",
+    "classGrade": "Grade 10",
+    "topics": [
+      {
+        "sectionName": "Quadratic Equations",
+        "numQuestions": 2,
+        "difficulty": "Medium",
+        "bloomLevel": "Apply"
+      }
+    ]
+  }'
+
+    """
 
 
 
