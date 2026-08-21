@@ -1,0 +1,1 @@
+math_indicators = ['equation', 'formula', 'calculate', 'solve', 'mathematics', 'math', 'algebra', 'geometry', 'trigonometry', 'calculus', '+', '-', '*', '/', '=', '√', 'π', '∫', '∑']

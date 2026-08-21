@@ -20,6 +20,7 @@ Learning notes:
   Trade-offs:
     - Saves LLM API costs (no call needed for cache hits)
     - Reduces latency dramatically
+    
     - BUT: in education, teachers may WANT different questions each time
       for the same topic → provide a bypass_cache flag
     - Cache must be invalidated when prompt templates change

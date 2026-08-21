@@ -1,6 +1,14 @@
 import os
+import sys
 import logging
 from datetime import datetime, timedelta
+
+# Add project root to sys.path to resolve imports like Utility and generator
+project_root = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(project_root) == 'backend':
+    project_root = os.path.dirname(project_root)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 log_dir = "logging"
 os.makedirs(log_dir, exist_ok=True)
@@ -31,7 +39,7 @@ import io
 import asyncio
 import hashlib
 #from concurrent.futures import ThreadPoolExecutor
-import mylang4  # Import the LangChain module
+from generator import generator  # Import the LangChain module
 #from langchain.vectorstores import Chroma
 from langchain_community.embeddings import OpenAIEmbeddings
 #from question_prompt import QuestionPromptGenerator
@@ -92,29 +100,38 @@ except Exception as e:
     logging.info(f"MongoDB Connection Error: {e}")
     db = None
 
-# Initialize OpenAI client
-try:
-    #benifit is retrying upto finite time
-    http_client = httpx.Client(
-        base_url=os.getenv('AZURE_OPENAI_ENDPOINT'),
-        timeout=60.0,
-        follow_redirects=True
-    )
-    
-    openai_client = openai.AzureOpenAI(
-        api_key=os.getenv('AZURE_OPENAI_API_KEY'),
-        azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),
-        api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
-        http_client=http_client
-    )
-    logging.info("Azure OpenAI client initialized successfully")
-except Exception as e:
-    logging.info(f"Error initializing OpenAI client: {e}")
-    raise
-
+# Initialize OpenAI client (only if Azure credentials are configured)
+# Note: mylang4.py handles its own LLM initialization and supports both
+# Azure and OpenRouter. This client is only needed if app.py itself
+# makes direct OpenAI calls (currently it does not).
+openai_client = None
+azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+if azure_endpoint:
+    try:
+        #benifit is retrying upto finite time
+        http_client = httpx.Client(
+            base_url=azure_endpoint,
+            timeout=60.0,
+            follow_redirects=True
+        )
+        
+        openai_client = openai.AzureOpenAI(
+            api_key=os.getenv('AZURE_OPENAI_API_KEY'),
+            azure_endpoint=azure_endpoint,
+            api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
+            http_client=http_client
+        )
+        logging.info("Azure OpenAI client initialized successfully")
+    except Exception as e:
+        logging.info(f"Error initializing OpenAI client: {e}")
+        openai_client = None
+else:
+    logging.info("AZURE_OPENAI_ENDPOINT not set — skipping Azure client. "
+                 "Using OpenRouter via mylang4.py instead.")
 
 # Export the client for use in other modules
 __all__ = ['openai_client']
+
 
 
 # Initialize AWS S3 client
@@ -216,7 +233,7 @@ def generate_questions():
                 current_batch = min(batch_size, num_qs - i)
                 batch_data = {**topic_data, 'numQuestions': current_batch}
 
-                questions = mylang4.question_generator.generate_questions(batch_data, vectorstore, mylang4.question_verifier)
+                questions = generator.question_generator.generate_questions(batch_data, vectorstore, generator.question_verifier)
                 # Handle the returned structure correctly
                 if isinstance(questions['questions'], dict) and 'questions' in questions['questions']:
                     # If questions['questions'] is a dict with nested 'questions' key
@@ -470,7 +487,7 @@ def analyse_note():
 
         vectorstore_path = f'vectorstores/latest'
         os.makedirs(vectorstore_path, exist_ok=True)
-        vectorstore, chunks = mylang4.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
+        vectorstore, chunks = generator.document_processor.process_uploaded_document(local_pdf_path, persist_directory=vectorstore_path)
 
         
 
@@ -547,20 +564,20 @@ def mylang_test():
             }
             logging.info("Using default test data for mylang4 testing")
         
-        # Check if mylang4 components are available
-        if not hasattr(mylang4, 'question_generator'):
-            return jsonify({'success': False, 'error': 'question_generator not found in mylang4'}), 500
+        # Check if generator components are available
+        if not hasattr(generator, 'question_generator'):
+            return jsonify({'success': False, 'error': 'question_generator not found in generator'}), 500
             
-        if not hasattr(mylang4, 'question_verifier'):
-            return jsonify({'success': False, 'error': 'question_verifier not found in mylang4'}), 500
+        if not hasattr(generator, 'question_verifier'):
+            return jsonify({'success': False, 'error': 'question_verifier not found in generator'}), 500
         
         # Set vectorstore to None for testing (no document context)
         vectorstore = None
         
         logging.info(f"Starting question generation with data: {data}")
         
-        # Generate questions using mylang4
-        out = mylang4.question_generator.generate_questions(data, vectorstore, mylang4.question_verifier)
+        # Generate questions using generator
+        out = generator.question_generator.generate_questions(data, vectorstore, generator.question_verifier)
         
         logging.info(f"Question generation completed successfully")
         
@@ -588,20 +605,20 @@ def mylang_test_get():
             "additionalInstructions": "Focus on quadratic equations"
         }
         
-        # Check if mylang4 components are available
-        if not hasattr(mylang4, 'question_generator'):
-            return jsonify({'success': False, 'error': 'question_generator not found in mylang4'}), 500
+        # Check if generator components are available
+        if not hasattr(generator, 'question_generator'):
+            return jsonify({'success': False, 'error': 'question_generator not found in generator'}), 500
             
-        if not hasattr(mylang4, 'question_verifier'):
-            return jsonify({'success': False, 'error': 'question_verifier not found in mylang4'}), 500
+        if not hasattr(generator, 'question_verifier'):
+            return jsonify({'success': False, 'error': 'question_verifier not found in generator'}), 500
         
         # Set vectorstore to None for testing (no document context)
         vectorstore = None
         
         logging.info(f"Starting question generation with default data: {data}")
         
-        # Generate questions using mylang4
-        out = mylang4.question_generator.generate_questions(data, vectorstore, mylang4.question_verifier)
+        # Generate questions using generator
+        out = generator.question_generator.generate_questions(data, vectorstore, generator.question_verifier)
         
         logging.info(f"Question generation completed successfully")
         

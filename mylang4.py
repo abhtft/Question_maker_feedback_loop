@@ -15,6 +15,26 @@ import re
 import hashlib
 from datetime import datetime
 
+# Import LiteLLM Fallback Connection Client wrapper
+try:
+    import sys
+    # Resolve config path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if "backend" in current_dir:
+        project_root = os.path.dirname(os.path.dirname(current_dir))
+    else:
+        project_root = current_dir
+    config_dir = os.path.join(project_root, "config")
+    if config_dir not in sys.path:
+        sys.path.append(config_dir)
+        
+    from llmconfig import LiteLLMChatWrapper, LiteLLMFallbackClient
+    LITE_LLM_CLIENT_AVAILABLE = True
+except Exception as _llm_config_err:
+    LITE_LLM_CLIENT_AVAILABLE = False
+    logger_init = logging.getLogger(__name__)
+    logger_init.warning(f"LiteLLM client wrapper not available: {_llm_config_err}")
+
 # Context Engineering Pipeline (Techniques 1-10)
 # See learning/context_engineering.md for detailed explanations
 try:
@@ -442,28 +462,57 @@ class QuestionQualityVerifier:
         azure_key = os.getenv('AZURE_OPENAI_API_KEY')
         openrouter_key = os.getenv('OPENROUTER_API_KEY')
         
-        if azure_key:
-            self.llm = AzureChatOpenAI(  
-                azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
-                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-                temperature=0,  
-                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-                api_key=azure_key,  
-            )  
-        elif openrouter_key:
-            self.llm = ChatOpenAI(
-                openai_api_key=openrouter_key,
-                openai_api_base='https://openrouter.ai/api/v1',
-                model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
-                temperature=0
-            )
+        if LITE_LLM_CLIENT_AVAILABLE:
+            try:
+                self.llm = LiteLLMChatWrapper()
+                logger.info("Initialized LiteLLMChatWrapper for QuestionQualityVerifier")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LiteLLMChatWrapper: {e}. Falling back to default LangChain LLM.")
+                if azure_key:
+                    self.llm = AzureChatOpenAI(  
+                        azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                        api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                        temperature=0,  
+                        azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                        api_key=azure_key,  
+                    )  
+                elif openrouter_key:
+                    self.llm = ChatOpenAI(
+                        openai_api_key=openrouter_key,
+                        openai_api_base='https://openrouter.ai/api/v1',
+                        model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                        temperature=0
+                    )
+                else:
+                    self.llm = ChatOpenAI(
+                        openai_api_key="placeholder",
+                        openai_api_base='https://openrouter.ai/api/v1',
+                        model_name='openai/gpt-4o',
+                        temperature=0
+                    )
         else:
-            self.llm = ChatOpenAI(
-                openai_api_key="placeholder",
-                openai_api_base='https://openrouter.ai/api/v1',
-                model_name='openai/gpt-4o',
-                temperature=0
-            )  
+            if azure_key:
+                self.llm = AzureChatOpenAI(  
+                    azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                    api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                    temperature=0,  
+                    azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                    api_key=azure_key,  
+                )  
+            elif openrouter_key:
+                self.llm = ChatOpenAI(
+                    openai_api_key=openrouter_key,
+                    openai_api_base='https://openrouter.ai/api/v1',
+                    model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                    temperature=0
+                )
+            else:
+                self.llm = ChatOpenAI(
+                    openai_api_key="placeholder",
+                    openai_api_base='https://openrouter.ai/api/v1',
+                    model_name='openai/gpt-4o',
+                    temperature=0
+                )
   
         # ✅ Fixed: Properly escaped curly braces for LangChain PromptTemplate
         self.verification_template = """  
@@ -599,28 +648,57 @@ class QuestionGenerator:
         azure_key = os.getenv('AZURE_OPENAI_API_KEY')
         openrouter_key = os.getenv('OPENROUTER_API_KEY')
         
-        if azure_key:
-            self.llm = AzureChatOpenAI(  
-                azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
-                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-                temperature=0.0,  # Lower temp for more predictable JSON  
-                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-                api_key=azure_key,  
-            )  
-        elif openrouter_key:
-            self.llm = ChatOpenAI(
-                openai_api_key=openrouter_key,
-                openai_api_base='https://openrouter.ai/api/v1',
-                model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
-                temperature=0.0
-            )
+        if LITE_LLM_CLIENT_AVAILABLE:
+            try:
+                self.llm = LiteLLMChatWrapper()
+                logger.info("Initialized LiteLLMChatWrapper for QuestionGenerator")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LiteLLMChatWrapper: {e}. Falling back to default LangChain LLM.")
+                if azure_key:
+                    self.llm = AzureChatOpenAI(  
+                        azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                        api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                        temperature=0.0,  
+                        azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                        api_key=azure_key,  
+                    )  
+                elif openrouter_key:
+                    self.llm = ChatOpenAI(
+                        openai_api_key=openrouter_key,
+                        openai_api_base='https://openrouter.ai/api/v1',
+                        model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                        temperature=0.0
+                    )
+                else:
+                    self.llm = ChatOpenAI(
+                        openai_api_key="placeholder",
+                        openai_api_base='https://openrouter.ai/api/v1',
+                        model_name='openai/gpt-4o',
+                        temperature=0.0
+                    )
         else:
-            self.llm = ChatOpenAI(
-                openai_api_key="placeholder",
-                openai_api_base='https://openrouter.ai/api/v1',
-                model_name='openai/gpt-4o',
-                temperature=0.0
-            )  
+            if azure_key:
+                self.llm = AzureChatOpenAI(  
+                    azure_deployment=os.getenv('AZURE_OPENAI_CHAT_DEPLOYMENT', 'gpt-4.1'),  
+                    api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                    temperature=0.0,  
+                    azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                    api_key=azure_key,  
+                )  
+            elif openrouter_key:
+                self.llm = ChatOpenAI(
+                    openai_api_key=openrouter_key,
+                    openai_api_base='https://openrouter.ai/api/v1',
+                    model_name=os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o'),
+                    temperature=0.0
+                )
+            else:
+                self.llm = ChatOpenAI(
+                    openai_api_key="placeholder",
+                    openai_api_base='https://openrouter.ai/api/v1',
+                    model_name='openai/gpt-4o',
+                    temperature=0.0
+                )
   
         # ======== Your Original Question Prompt ========  
         self.question_template = """  
@@ -933,7 +1011,7 @@ context_pipeline = None
 if CONTEXT_ENGINEERING_AVAILABLE:
     try:
         context_pipeline = ContextEngineeringPipeline(
-            llm=None,  # Set to a cheap LLM to enable summarization (Technique 5)
+            llm=question_generator.llm if question_generator else None,  # Set to fallback LLM to enable summarization (Technique 5)
             embeddings=document_processor.embeddings,  # Reuse existing embeddings for cache
             config={
                 'enable_summarization': False,  # Set True to enable Technique 5 (adds latency)

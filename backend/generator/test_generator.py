@@ -2,6 +2,9 @@
 """
 Test script for Enhanced mylang4.py Phase 1 Improvements
 Tests all new features while ensuring app.py compatibility
+
+python backend\generator\test_geerator.py
+
 """
 
 import os
@@ -10,11 +13,12 @@ import json
 import logging
 from typing import Dict, Any
 
-# Add current directory to path
+# Add current directory and its parent directory (project root) to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the enhanced mylang4 module
-import mylang4
+# Import the enhanced generator module
+import generator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,7 +37,7 @@ def test_enhanced_document_processor():
             'default': "This is a general text about various topics that doesn't fit into specific categories."
         }
         
-        processor = mylang4.DocumentProcessor()
+        processor = generator.DocumentProcessor()
         
         for content_type, text in test_texts.items():
             detected_type = processor._detect_content_type(text)
@@ -68,7 +72,7 @@ def test_enhanced_context_retriever():
         }
         
         # Test search parameter determination
-        retriever = mylang4.EnhancedContextRetriever(vectorstore)
+        retriever = generator.EnhancedContextRetriever(vectorstore)
         
         # Test semantic query building
         semantic_query = retriever._build_semantic_query(topic_data)
@@ -103,23 +107,22 @@ def test_app_compatibility():
         ]
         
         for component in required_components:
-            if not hasattr(mylang4, component):
+            if not hasattr(generator, component):
                 raise AttributeError(f"Missing required component: {component}")
             logger.info(f"✅ Component {component} found")
         
-        # Test that method signatures are compatible
         # Test document processor
-        processor = mylang4.document_processor
+        processor = generator.document_processor
         if not hasattr(processor, 'process_uploaded_document'):
             raise AttributeError("Missing process_uploaded_document method")
         
         # Test question generator
-        generator = mylang4.question_generator
-        if not hasattr(generator, 'generate_questions'):
+        generator_component = generator.question_generator
+        if not hasattr(generator_component, 'generate_questions'):
             raise AttributeError("Missing generate_questions method")
         
         # Test question verifier
-        verifier = mylang4.question_verifier
+        verifier = generator.question_verifier
         if not hasattr(verifier, 'verify_questions'):
             raise AttributeError("Missing verify_questions method")
         
@@ -151,10 +154,10 @@ def test_question_generation_compatibility():
         vectorstore = None
         
         # Generate questions using the enhanced system
-        result = mylang4.question_generator.generate_questions(
+        result = generator.question_generator.generate_questions(
             test_data, 
             vectorstore, 
-            mylang4.question_verifier
+            generator.question_verifier
         )
         
         # Verify output format
