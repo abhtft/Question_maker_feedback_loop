@@ -21,7 +21,16 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Import backend modules
-import mylang4
+import sys
+# Add backend to sys.path to resolve imports like generator
+project_root = os.path.dirname(os.path.abspath(__file__))
+backend_path = os.path.join(project_root, 'backend')
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from generator import generator
 from langchain_community.vectorstores import FAISS
 from Utility.pdfmaker import CreatePDF
 
@@ -230,7 +239,7 @@ def handle_generate_questions(event):
             # Load local FAISS vectorstore
             vectorstore = FAISS.load_local(
                 vectorstore_path, 
-                mylang4.document_processor.embeddings, 
+                generator.document_processor.embeddings, 
                 allow_dangerous_deserialization=True
             )
             logger.info(f"Successfully loaded vectorstore from S3 files under {vectorstore_path}")
@@ -258,10 +267,10 @@ def handle_generate_questions(event):
             current_batch = min(batch_size, num_qs - i)
             batch_data = {**topic_data, 'numQuestions': current_batch}
             
-            questions = mylang4.question_generator.generate_questions(
+            questions = generator.question_generator.generate_questions(
                 batch_data, 
                 vectorstore, 
-                mylang4.question_verifier
+                generator.question_verifier
             )
             
             # Handle list/dict returned structure
@@ -515,8 +524,8 @@ def handle_analyse_note(event):
         vectorstore_path = f"/tmp/vectorstores/{note_id}"
         os.makedirs(vectorstore_path, exist_ok=True)
         
-        logger.info("Processing document chunks using mylang4...")
-        vectorstore, chunks = mylang4.document_processor.process_uploaded_document(
+        logger.info("Processing document chunks using generator...")
+        vectorstore, chunks = generator.document_processor.process_uploaded_document(
             local_pdf_path, 
             persist_directory=vectorstore_path
         )
@@ -559,8 +568,8 @@ def handle_mylang_test(event):
                 "additionalInstructions": "Focus on quadratic equations"
             }
             
-        logger.info(f"Testing mylang4 with payload: {data}")
-        out = mylang4.question_generator.generate_questions(data, None, mylang4.question_verifier)
+        logger.info(f"Testing generator with payload: {data}")
+        out = generator.question_generator.generate_questions(data, None, generator.question_verifier)
         return make_response(200, {'success': True, 'output': out})
     except Exception as e:
         logger.error(f"Error in handle_mylang_test: {e}")
@@ -578,8 +587,8 @@ def handle_mylang_test_get(event):
             "bloomLevel": "Understand",
             "additionalInstructions": "Focus on quadratic equations"
         }
-        logger.info(f"Testing mylang4 GET with payload: {data}")
-        out = mylang4.question_generator.generate_questions(data, None, mylang4.question_verifier)
+        logger.info(f"Testing generator GET with payload: {data}")
+        out = generator.question_generator.generate_questions(data, None, generator.question_verifier)
         return make_response(200, {'success': True, 'output': out})
     except Exception as e:
         logger.error(f"Error in handle_mylang_test_get: {e}")
