@@ -13,6 +13,7 @@ To bypass this limit, the application is deployed as a **Docker Container Image*
 ```mermaid
 flowchart LR
     A[React Frontend] -->|HTTP Request| B[AWS API Gateway]
+
     B -->|Trigger Event| C[AWS Lambda Container]
     C -->|Store PDFs & FAISS Indices| D[(AWS S3)]
     C -->|Log Metadata| E[(AWS DynamoDB)]
