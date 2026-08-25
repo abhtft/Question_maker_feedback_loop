@@ -23,8 +23,9 @@ logger.setLevel(logging.INFO)
 # Import backend modules
 import sys
 # Add backend to sys.path to resolve imports like generator
-project_root = os.path.dirname(os.path.abspath(__file__))
-backend_path = os.path.join(project_root, 'backend')
+file_dir = os.path.dirname(os.path.abspath(__file__))
+backend_path = os.path.dirname(file_dir)
+project_root = os.path.dirname(backend_path)
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 if project_root not in sys.path:

@@ -1,0 +1,30 @@
+# Walkthrough - qplambda Relocation & Docker Build Optimization
+
+The handler script `qplambda.py` has been relocated from the root directory to `backend/step_lambda/qplambda.py`. Additionally, the Docker build issues have been fixed.
+
+## Changes Made
+
+### 1. `backend/step_lambda/qplambda.py`
+Adjusted the dynamic `sys.path` resolution logic so that imports from the `backend/` and root (e.g. `Utility`, `config`) directories resolve correctly.
+- Added `file_dir = os.path.dirname(os.path.abspath(__file__))` (`backend/step_lambda/`)
+- Added `backend_path = os.path.dirname(file_dir)` (`backend/`)
+- Added `project_root = os.path.dirname(backend_path)` (root of the workspace)
+- Injected both `backend_path` and `project_root` into `sys.path` dynamically.
+
+### 2. `requirements.txt`
+- **Removed Local Editable Dependency**: Removed the absolute host path `-e d:/llmconfig/litellm` which is inaccessible within the Docker container environment and redundant since `config/llmconfig.py` is included directly in the repository.
+- **Downgraded `reportlab` to `3.6.13`**: Downgraded from `4.0.0` to avoid its new dependency on `rlPyCairo` and `pycairo` (which requires system-level C compilation tools like `gcc` and Cairo headers that are not present in minimal Lambda base images).
+
+### 3. Dockerfiles (`Dockerfile.lambda` & `Dockerfile.step`)
+- **Upgraded Python Runtime to 3.11**: Upgraded the base image from `3.10` to `3.11`. The `3.11` base image runs on **Amazon Linux 2023** (which has a modern glibc 2.34), allowing pip to install pre-compiled `manylinux_2_28` binary wheels for complex packages like `tiktoken` and `pillow`.
+- **Enforced Binary-Only Installation**: Added `--only-binary=:all:` to the `pip install` commands. This prevents `pip` from trying to compile source tarballs if it encounters mismatches, ensuring clean, lightweight, and compile-free builds.
+- **Updated Entrypoint CMD**: Updated [Dockerfile.lambda](file:///d:/Github_Codes/Question_paper/Question_maker_feedback_loop/Dockerfile.lambda#L14-L16) to change the entrypoint from `qplambda.lambda_handler` to `backend.step_lambda.qplambda.lambda_handler`.
+
+## Verification Results
+
+The Docker image builds successfully and cleanly:
+```bash
+docker build -t prashnotri-lambda -f Dockerfile.lambda .
+```
+- Exited successfully with code `0`.
+- All binary wheels (`tiktoken`, `pillow`, `scipy`, `numpy`) installed successfully from pre-compiled sources without needing system build tools.

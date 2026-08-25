@@ -476,17 +476,6 @@ def download_pdf(paper_id):
             'error': str(e)
         }), 500
     
-# @app.route('/api/n8n-webhook', methods=['POST'])
-# def n8n_webhook():
-#     try:
-#         data = request.get_json()
-#         logging.info(f"Received N8N webhook: {data}")
-#         #send email to user
-#         #send_email(data['email'], data['subjectName'], data['classGrade'], data['topics'])
-#         return jsonify({'success': True}), 200
-#     except Exception as e:
-#         logging.error(f"Error in n8n_webhook: {e}")
-#         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/upload-note', methods=['POST'])
@@ -569,48 +558,12 @@ def not_found(e):
 def server_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    logging.info(f"Server starting on http://localhost:{port}")
-    logging.info(f"Serving static files from: {os.path.abspath(app.static_folder)}")
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=True
-    )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
-taskl
-1.generate pdf with and without answer
-2.Working on improvement of question quality
-3.To understand the malang4 file
-4.good text look of chatgpt see
-5.additional info in question paper optional also
-'''
 
 @app.route('/api/mylangtest', methods=['POST'])
+
+
+
 def mylang_test():
     """
     Test endpoint for mylang4 question generation functionality
@@ -657,6 +610,8 @@ def mylang_test():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/mylangtest-get', methods=['GET'])
+
+#curl -X GET "http://localhost:5000/api/mylangtest-get"
 def mylang_test_get():
     """
     GET endpoint for testing mylang4 with default data
@@ -699,3 +654,47 @@ def mylang_test_get():
         logging.error(f"Error in mylang_test_get endpoint: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+#####################     30-08-2026        #########################
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    logging.info(f"Server starting on http://localhost:{port}")
+    logging.info(f"Serving static files from: {os.path.abspath(app.static_folder)}")
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=True
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+taskl
+1.generate pdf with and without answer
+2.Working on improvement of question quality
+3.To understand the malang4 file
+4.good text look of chatgpt see
+5.additional info in question paper optional also
+'''

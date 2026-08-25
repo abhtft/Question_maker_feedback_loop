@@ -51,11 +51,30 @@ AWS Lambda pulls container images from **Amazon Elastic Container Registry (ECR)
    ```bash
    aws ecr create-repository --repository-name prashnotri-backend --region us-east-1
    ```
+
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:us-east-1:417780655868:repository/prashnotri-backend",
+        "registryId": "417780655868",
+        "repositoryName": "prashnotri-backend",
+        "repositoryUri": "417780655868.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend",
+        "createdAt": "2026-08-25T23:18:27.104000+05:30",
+        "imageTagMutability": "MUTABLE",
+        "imageScanningConfiguration": {
+            "scanOnPush": false
+        },
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }
+    }
+}
+
+
    *Note: Save the `repositoryUri` output (e.g., `123456789012.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend`).*
 
 2. **Authenticate Docker with your AWS ECR Registry:**
    ```bash
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 417780655868.dkr.ecr.us-east-1.amazonaws.com
    ```
    *(Replace `123456789012` with your actual AWS Account ID).*
 
