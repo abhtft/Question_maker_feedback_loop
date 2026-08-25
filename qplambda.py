@@ -34,6 +34,15 @@ from generator import generator
 from langchain_community.vectorstores import FAISS
 from Utility.pdfmaker import CreatePDF
 
+# Initialize standardized LLM client from config/llmconfig.py
+try:
+    from config.llmconfig import LiteLLMFallbackClient
+    llm_client = LiteLLMFallbackClient()
+    logger.info("Standardized LiteLLMFallbackClient initialized successfully in qplambda.py")
+except Exception as e:
+    logger.error(f"Error initializing LiteLLMFallbackClient in qplambda.py: {e}")
+    llm_client = None
+
 
 """
 #testing function

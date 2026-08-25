@@ -16,6 +16,18 @@ This module is designed to be easily integrated with other parts of the system, 
 
 
 cmd: python backend/generator/generator.py
+
+
+
+
+
+
+
+
+
+
+
+
 """
 
 
@@ -49,7 +61,7 @@ try:
     if config_dir not in sys.path:
         sys.path.append(config_dir)
         
-    from llmconfig import LiteLLMChatWrapper, LiteLLMFallbackClient
+    from llmconfig import LiteLLMChatWrapper, LiteLLMFallbackClient, LiteLLMEmbeddings
     LITE_LLM_CLIENT_AVAILABLE = True
 except Exception as _llm_config_err:
     LITE_LLM_CLIENT_AVAILABLE = False
@@ -134,20 +146,38 @@ def safe_json_loads(text: str, default: Any = None) -> Any:
 # -------------------------------  
 class DocumentProcessor:  
     def __init__(self):  
-        #methods and attr. related to langchain
-        azure_key = os.getenv('AZURE_OPENAI_API_KEY')
-        if azure_key:
-            self.embeddings = AzureOpenAIEmbeddings(  
-                azure_deployment='text-embedding-3-large',  
-                api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
-                azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
-                api_key=azure_key,  
-            )  
+        # Standardized embedding initialization using LiteLLMEmbeddings from llmconfig.py
+        if LITE_LLM_CLIENT_AVAILABLE:
+            try:
+                self.embeddings = LiteLLMEmbeddings()
+                logger.info("Initialized LiteLLMEmbeddings for DocumentProcessor")
+            except Exception as e:
+                logger.warning(f"Failed to initialize LiteLLMEmbeddings: {e}. Falling back to default LangChain embeddings.")
+                azure_key = os.getenv('AZURE_OPENAI_API_KEY')
+                if azure_key:
+                    self.embeddings = AzureOpenAIEmbeddings(  
+                        azure_deployment='text-embedding-3-large',  
+                        api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                        azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                        api_key=azure_key,  
+                    )  
+                else:
+                    self.embeddings = OpenAIEmbeddings(
+                        openai_api_key=os.getenv('OPENAI_API_KEY', 'placeholder')
+                    )
         else:
-            # Fallback to standard OpenAIEmbeddings (which can also work with other backends if configured)
-            self.embeddings = OpenAIEmbeddings(
-                openai_api_key=os.getenv('OPENAI_API_KEY', 'placeholder')
-            )  
+            azure_key = os.getenv('AZURE_OPENAI_API_KEY')
+            if azure_key:
+                self.embeddings = AzureOpenAIEmbeddings(  
+                    azure_deployment='text-embedding-3-large',  
+                    api_version=os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview'),  
+                    azure_endpoint=os.getenv('AZURE_OPENAI_ENDPOINT'),  
+                    api_key=azure_key,  
+                )  
+            else:
+                self.embeddings = OpenAIEmbeddings(
+                    openai_api_key=os.getenv('OPENAI_API_KEY', 'placeholder')
+                )  
         
         # Enhanced text splitters for different content types
         #dict

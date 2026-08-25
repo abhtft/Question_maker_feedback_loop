@@ -119,7 +119,7 @@ class LiteLLMFallbackClient:
 
         # 3. OpenRouter detection
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
-        openrouter_model = os.getenv("OPENROUTER_MODEL_ID", "google/gemini-2.5-pro")
+        openrouter_model = os.getenv("OPENROUTER_MODEL_ID", "google/gemini-2.0-flash-exp")
 
         if self._is_valid_value(openrouter_key):
             # Set OPENROUTER_API_KEY standard in environment
@@ -183,6 +183,7 @@ try:
     from langchain_core.language_models.chat_models import BaseChatModel
     from langchain_core.messages import BaseMessage, AIMessage
     from langchain_core.outputs import ChatResult, ChatGeneration
+    from langchain_core.embeddings import Embeddings
     from typing import Any, List, Optional
     HAS_LANGCHAIN = True
 except ImportError:
@@ -216,6 +217,115 @@ if HAS_LANGCHAIN:
         @property
         def _llm_type(self) -> str:
             return "litellm_fallback_wrapper"
+
+    class LiteLLMEmbeddings(Embeddings):
+        """
+        A LangChain-compatible Embeddings class using LiteLLM with fallback options.
+        """
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.candidates = []
+            self._detect_configurations()
+
+        def _is_valid_value(self, value):
+            if not value:
+                return False
+            placeholders = ["your_", "_here", "placeholder"]
+            return not any(p in value.lower() for p in placeholders)
+
+        def _detect_configurations(self):
+            # 1. AWS Bedrock Embeddings detection
+            aws_key = os.getenv("AWS_ACCESS_KEY_ID")
+            aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
+            aws_region = os.getenv("AWS_REGION_NAME") or os.getenv("AWS_REGION")
+            aws_embed_model = os.getenv("AWS_BEDROCK_EMBEDDING_MODEL_ID", "cohere.embed-english-v3")
+
+            if self._is_valid_value(aws_key) and self._is_valid_value(aws_secret) and self._is_valid_value(aws_region):
+                self.candidates.append({
+                    "provider": "AWS Bedrock",
+                    "model_identifier": f"bedrock/{aws_embed_model}",
+                    "env_check": True
+                })
+            else:
+                self.candidates.append({
+                    "provider": "AWS Bedrock",
+                    "model_identifier": f"bedrock/{aws_embed_model}",
+                    "env_check": False
+                })
+
+            # 2. Azure OpenAI Embeddings detection
+            azure_key = os.getenv("AZURE_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
+            azure_base = os.getenv("AZURE_API_BASE") or os.getenv("AZURE_OPENAI_ENDPOINT")
+            azure_version = os.getenv("AZURE_API_VERSION") or os.getenv("AZURE_OPENAI_API_VERSION") or "2024-02-15-preview"
+            azure_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME") or "text-embedding-3-large"
+
+            if self._is_valid_value(azure_key) and self._is_valid_value(azure_base):
+                os.environ["AZURE_API_KEY"] = azure_key
+                os.environ["AZURE_API_BASE"] = azure_base
+                os.environ["AZURE_API_VERSION"] = azure_version
+                
+                self.candidates.append({
+                    "provider": "Azure OpenAI",
+                    "model_identifier": f"azure/{azure_deployment}",
+                    "env_check": True
+                })
+            else:
+                self.candidates.append({
+                    "provider": "Azure OpenAI",
+                    "model_identifier": f"azure/{azure_deployment}",
+                    "env_check": False
+                })
+
+            # 3. OpenAI Embeddings fallback
+            openai_key = os.getenv("OPENAI_API_KEY")
+            openai_model = os.getenv("OPENAI_EMBEDDING_MODEL_ID", "text-embedding-3-large")
+
+            if self._is_valid_value(openai_key):
+                self.candidates.append({
+                    "provider": "OpenAI",
+                    "model_identifier": openai_model,
+                    "env_check": True
+                })
+            else:
+                self.candidates.append({
+                    "provider": "OpenAI",
+                    "model_identifier": openai_model,
+                    "env_check": False
+                })
+
+        def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
+            configured_candidates = [c for c in self.candidates if c["env_check"]]
+            
+            if not configured_candidates:
+                configured_candidates = self.candidates
+
+            import litellm
+            litellm.telemetry = False
+            errors = {}
+
+            for candidate in configured_candidates:
+                provider = candidate["provider"]
+                model = candidate["model_identifier"]
+                
+                try:
+                    response = litellm.embedding(
+                        model=model,
+                        input=texts
+                    )
+                    return [r["embedding"] for r in response.data]
+                except Exception as e:
+                    errors[provider] = str(e)
+
+            error_summary = "\n".join([f" - {provider}: {err}" for provider, err in errors.items()])
+            raise RuntimeError(
+                f"All configured Embedding providers failed:\n{error_summary}"
+            )
+
+        def embed_documents(self, texts: List[str]) -> List[List[float]]:
+            return self._get_embeddings(texts)
+
+        def embed_query(self, text: str) -> List[float]:
+            return self._get_embeddings([text])[0]
 
 
 def main():

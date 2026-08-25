@@ -1,5 +1,28 @@
 """
 python backend/app.py
+
+#curl command for sample for api/generate_questions
+
+
+
+    curl -X POST "http://localhost:5000/api/generate-questions" `
+  -H "Content-Type: application/json" `
+  -d '{
+    "email": "student@example.com",
+    "subjectName": "Mathematics",
+    "classGrade": "Grade 10",
+    "topics": [
+      {
+        "sectionName": "Quadratic Equations",
+        "numQuestions": 1,
+        "difficulty": "Medium",
+        "bloomLevel": "Apply"
+      }
+    ]
+  }'
+
+    
+
 """
 
 import os
@@ -154,34 +177,14 @@ except Exception as e:
     papers_table = None
     notes_table = None
 
-# Initialize OpenAI client (only if Azure credentials are configured)
-# Note: mylang4.py handles its own LLM initialization and supports both
-# Azure and OpenRouter. This client is only needed if app.py itself
-# makes direct OpenAI calls (currently it does not).
-openai_client = None
-azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-if azure_endpoint:
-    try:
-        #benifit is retrying upto finite time
-        http_client = httpx.Client(
-            base_url=azure_endpoint,
-            timeout=60.0,
-            follow_redirects=True
-        )
-        
-        openai_client = openai.AzureOpenAI(
-            api_key=os.getenv('AZURE_OPENAI_API_KEY'),
-            azure_endpoint=azure_endpoint,
-            api_version=os.getenv('AZURE_OPENAI_API_VERSION'),
-            http_client=http_client
-        )
-        logging.info("Azure OpenAI client initialized successfully")
-    except Exception as e:
-        logging.info(f"Error initializing OpenAI client: {e}")
-        openai_client = None
-else:
-    logging.info("AZURE_OPENAI_ENDPOINT not set — skipping Azure client. "
-                 "Using OpenRouter via mylang4.py instead.")
+# Initialize standardized LLM client from config/llmconfig.py
+try:
+    from config.llmconfig import LiteLLMFallbackClient, LiteLLMChatWrapper
+    openai_client = LiteLLMFallbackClient()
+    logging.info("Standardized LiteLLMFallbackClient initialized successfully in app.py")
+except Exception as e:
+    logging.error(f"Error initializing LiteLLMFallbackClient in app.py: {e}")
+    openai_client = None
 
 # Export the client for use in other modules
 __all__ = ['openai_client']
@@ -263,7 +266,7 @@ def generate_questions():
         vectorstore = None
         if os.path.exists(vectorstore_path):
             try:
-                embeddings = OpenAIEmbeddings()
+                embeddings = generator.document_processor.embeddings
                 vectorstore = FAISS.load_local(vectorstore_path, embeddings, allow_dangerous_deserialization=True)
                 logging.info(f"Loaded vectorstore from {vectorstore_path}")
             except Exception as e:
@@ -578,24 +581,7 @@ if __name__ == '__main__':
 
 
 
-    """
-    curl -X POST "http://localhost:5000/api/generate-questions" `
-  -H "Content-Type: application/json" `
-  -d '{
-    "email": "student@example.com",
-    "subjectName": "Mathematics",
-    "classGrade": "Grade 10",
-    "topics": [
-      {
-        "sectionName": "Quadratic Equations",
-        "numQuestions": 2,
-        "difficulty": "Medium",
-        "bloomLevel": "Apply"
-      }
-    ]
-  }'
 
-    """
 
 
 
@@ -687,6 +673,8 @@ def mylang_test_get():
             "bloomLevel": "Understand",
             "additionalInstructions": "Focus on quadratic equations"
         }
+
+        #curl http://localhost:5000/api/mylangtest-get
         
         # Check if generator components are available
         if not hasattr(generator, 'question_generator'):
