@@ -24,7 +24,7 @@ Adjusted the dynamic `sys.path` resolution logic so that imports from the `backe
 
 The Docker image builds successfully and cleanly:
 ```bash
-docker build -t prashnotri-lambda -f Dockerfile.lambda .
+docker build --provenance=false -t prashnotri-lambda -f Dockerfile.lambda .
 ```
 - Exited successfully with code `0`.
 - All binary wheels (`tiktoken`, `pillow`, `scipy`, `numpy`) installed successfully from pre-compiled sources without needing system build tools.

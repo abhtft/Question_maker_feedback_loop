@@ -34,13 +34,17 @@ Before deploying, ensure you have the following installed and configured:
 ## 🛠️ Step-by-Step Deployment
 
 ### Step 1: Build the Docker Image Locally
-Open your terminal at the root of the project (`Question_maker_feedback_loop`) and build the Lambda container image using the serverless-specific Dockerfile:
+Open your terminal at the root of the project (`Question_maker_feedback_loop`) and build the Lambda container image using the serverless-specific Dockerfile.
+
+> [!IMPORTANT]
+> AWS Lambda strictly requires a standard Docker V2 Schema 2 single-platform manifest. Since modern versions of Docker Desktop (specifically using Buildx/containerd) automatically append OCI build provenance/SBOM metadata, you **MUST** pass `--provenance=false` to disable these build attestations so Lambda doesn't reject the image format with a "media type format not supported" error.
 
 ```bash
-docker build -t prashnotri-lambda -f Dockerfile.lambda .
+docker build --provenance=false -t prashnotri-lambda -f Dockerfile.lambda .
 ```
 
 *Note: You can verify the image built successfully by running `docker images`.*
+
 
 ---
 
@@ -80,12 +84,12 @@ AWS Lambda pulls container images from **Amazon Elastic Container Registry (ECR)
 
 3. **Tag your local image to point to the ECR repo:**
    ```bash
-   docker tag prashnotri-lambda:latest 123456789012.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend:latest
+   docker tag prashnotri-lambda:latest 417780655868.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend
    ```
 
 4. **Push the image to ECR:**
    ```bash
-   docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend:latest
+   docker push 417780655868.dkr.ecr.us-east-1.amazonaws.com/prashnotri-backend:latest
    ```
 
 ---
